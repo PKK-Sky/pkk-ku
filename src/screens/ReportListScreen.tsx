@@ -9,7 +9,7 @@ import { formatDateTime } from '@utils';
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function ReportListScreen() {
-  const navigation = useNavigation<NavigationProp>;
+  const navigation = useNavigation<NavigationProp>();
   const [reports, setReports] = useState<ReportWithDetails[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
