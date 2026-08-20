@@ -6,9 +6,10 @@ on:
       profile:
         description: 'Build Profile'
         required: true
-        default: 'preview'
+        default: 'development'
         type: choice
         options:
+          - development
           - preview
           - production
       notes:
