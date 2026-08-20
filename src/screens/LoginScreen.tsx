@@ -1,26 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { View, Text, TextInput, Button, ActivityIndicator, Alert, StyleSheet } from 'react-native';
 import { useAuth } from '@hooks';
-import { useAuthContext } from '@context/AuthContext';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '@types';
-
-type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const { login, isLoading, error } = useAuth();
-  const { isAuthenticated } = useAuthContext();
-  const navigation = useNavigation<NavigationProp>();
-
-  // Auto-redirect ke Home kalau sudah login
-  useEffect(() => {
-    if (isAuthenticated) {
-      navigation.replace('Home' as never);
-    }
-  }, [isAuthenticated]);
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
