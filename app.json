@@ -1,15 +1,15 @@
 {
   "expo": {
-    "name": "PKK Laporan Kegiatan",
-    "slug": "pkk-laporan-kegiatan",
+    "name": "My PKK Warakas",
+    "slug": "mypkk",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/images/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "resizeMode": "cover",
+      "backgroundColor": "#e0f7fa"
     },
     "assetBundlePatterns": [
       "**/*"
@@ -22,7 +22,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#e0f7fa"
       },
       "package": "com.pkk.warakas.laporan",
       "versionCode": 1,
@@ -54,11 +54,11 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "your-eas-project-id"
+        "projectId": "e45a0574-38c0-4506-9225-947c583045a5"
       }
     },
     "updates": {
-      "url": "https://u.expo.dev/your-eas-project-id",
+      "url": "https://u.expo.dev/e45a0574-38c0-4506-9225-947c583045a5",
       "enabled": true,
       "checkAutomatically": "ON_LOAD"
     },
