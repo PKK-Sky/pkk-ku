@@ -6,3 +6,4 @@ export { default as ReportCreateScreen } from './ReportCreateScreen';
 export { default as ReportPreviewScreen } from './ReportPreviewScreen';
 export { default as ReportPdfViewerScreen } from './ReportPdfViewerScreen';
 export { default as AccessDeniedScreen } from './AccessDeniedScreen';
+export { default as VideoIntroScreen } from './VideoIntroScreen';
