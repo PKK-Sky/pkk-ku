@@ -44,6 +44,14 @@
           "cameraPermission": "Aplikasi ini memerlukan akses ke kamera untuk mengambil foto dokumentasi kegiatan."
         }
       ],
+      [
+        "expo-print",
+        {
+          "ios": {
+            "outputType": "data"
+          }
+        }
+      ]
     ],
     "extra": {
       "eas": {
