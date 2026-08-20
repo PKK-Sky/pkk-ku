@@ -1,11 +1,26 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, Button, ActivityIndicator, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, Button, ActivityIndicator, Alert, StyleSheet } from 'react-native';
 import { useAuth } from '@hooks';
+import { useAuthContext } from '@context/AuthContext';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '@types';
+
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const { login, isLoading, error } = useAuth();
+  const { isAuthenticated } = useAuthContext();
+  const navigation = useNavigation<NavigationProp>();
+
+  // Auto-redirect ke Home kalau sudah login
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigation.replace('Home' as never);
+    }
+  }, [isAuthenticated]);
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
@@ -19,13 +34,9 @@ export default function LoginScreen() {
   };
 
   return (
-    <View style={{ flex: 1, justifyContent: 'center', padding: 24 }}>
-      <Text style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 24, textAlign: 'center' }}>
-        PKK Laporan Kegiatan
-      </Text>
-      <Text style={{ fontSize: 14, color: '#666', marginBottom: 24, textAlign: 'center' }}>
-        TP PKK Kelurahan Warakas
-      </Text>
+    <View style={styles.container}>
+      <Text style={styles.title}>PKK Laporan Kegiatan</Text>
+      <Text style={styles.subtitle}>TP PKK Kelurahan Warakas</Text>
 
       <TextInput
         placeholder="Email"
@@ -33,26 +44,14 @@ export default function LoginScreen() {
         onChangeText={setEmail}
         autoCapitalize="none"
         keyboardType="email-address"
-        style={{
-          borderWidth: 1,
-          borderColor: '#ddd',
-          borderRadius: 8,
-          padding: 12,
-          marginBottom: 12,
-        }}
+        style={styles.input}
       />
       <TextInput
         placeholder="Password"
         value={password}
         onChangeText={setPassword}
         secureTextEntry
-        style={{
-          borderWidth: 1,
-          borderColor: '#ddd',
-          borderRadius: 8,
-          padding: 12,
-          marginBottom: 24,
-        }}
+        style={styles.input}
       />
 
       {isLoading ? (
@@ -62,10 +61,42 @@ export default function LoginScreen() {
       )}
 
       {error && (
-        <Text style={{ color: 'red', marginTop: 12, textAlign: 'center' }}>
-          {error}
-        </Text>
+        <Text style={styles.error}>{error}</Text>
       )}
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: 24,
+    backgroundColor: '#fff',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 32,
+    textAlign: 'center',
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    fontSize: 16,
+  },
+  error: {
+    color: '#dc3545',
+    marginTop: 12,
+    textAlign: 'center',
+  },
+});
