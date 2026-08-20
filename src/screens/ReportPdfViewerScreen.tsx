@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, ActivityIndicator, Button } from 'react-native';
 import { useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
-import type { RootStackParamList, ReportWithDetails } from '@types';
+import type { RootStackParamList } from '@types';
 import { getReportById } from '@services';
 import { generateReportPdf } from '@services/pdfService';
 
@@ -11,7 +11,6 @@ type RouteProps = RouteProp<RootStackParamList, 'ReportPdfViewer'>;
 export default function ReportPdfViewerScreen() {
   const route = useRoute<RouteProps>();
   const { reportId } = route.params;
-  const [report, setReport] = useState<ReportWithDetails | null>(null);
   const [pdfUri, setPdfUri] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -29,7 +28,6 @@ export default function ReportPdfViewerScreen() {
         setIsLoading(false);
         return;
       }
-      setReport(data);
       const uri = await generateReportPdf(data);
       setPdfUri(uri);
     } catch (err) {
