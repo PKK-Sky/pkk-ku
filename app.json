@@ -43,6 +43,16 @@
           "photosPermission": "Aplikasi ini memerlukan akses ke galeri foto untuk melampirkan dokumentasi kegiatan.",
           "cameraPermission": "Aplikasi ini memerlukan akses ke kamera untuk mengambil foto dokumentasi kegiatan."
         }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "buildToolsVersion": "35.0.0"
+          }
+        }
       ]
     ],
     "extra": {
