@@ -37,8 +37,8 @@ jobs:
 
       - name: 📤 Submit Android
         if: github.event.inputs.platform == 'android' || github.event.inputs.platform == 'both'
-        run: npx eas submit --platform android --non-interactive
+        run: eas submit --platform android --non-interactive
 
       - name: 📤 Submit iOS
         if: github.event.inputs.platform == 'ios' || github.event.inputs.platform == 'both'
-        run: npx eas submit --platform ios --non-interactive
+        run: eas submit --platform ios --non-interactive

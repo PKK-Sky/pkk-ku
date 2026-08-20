@@ -43,7 +43,7 @@ jobs:
         continue-on-error: true
 
       - name: 🏗️ Build iOS
-        run: npx eas build --platform ios --profile ${{ github.event.inputs.profile }} --non-interactive
+        run: eas build --platform ios --profile ${{ github.event.inputs.profile }} --non-interactive
         env:
           EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
           EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
