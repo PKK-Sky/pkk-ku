@@ -1,0 +1,45 @@
+name: 📤 Submit ke Store (Manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: 'Platform'
+        required: true
+        default: 'android'
+        type: choice
+        options:
+          - android
+          - ios
+          - both
+
+jobs:
+  submit:
+    name: Submit ke Store
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: 🔧 Setup EAS CLI
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 📤 Submit Android
+        if: github.event.inputs.platform == 'android' || github.event.inputs.platform == 'both'
+        run: npx eas submit --platform android --non-interactive
+
+      - name: 📤 Submit iOS
+        if: github.event.inputs.platform == 'ios' || github.event.inputs.platform == 'both'
+        run: npx eas submit --platform ios --non-interactive
