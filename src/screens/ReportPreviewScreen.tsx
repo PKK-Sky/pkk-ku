@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, Button, ActivityIndicator } from 'react-native';
 import { useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
-import type { RootStackParamList, ReportWithDetails } from '@types';
+import type { RootStackParamList } from '@types';
 import { getReportById } from '@services';
 import { generateReportHtml } from '@services/pdfService';
 
@@ -11,7 +11,6 @@ type RouteProps = RouteProp<RootStackParamList, 'ReportPreview'>;
 export default function ReportPreviewScreen() {
   const route = useRoute<RouteProps>();
   const { reportId } = route.params;
-  const [report, setReport] = useState<ReportWithDetails | null>(null);
   const [html, setHtml] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
 
@@ -23,7 +22,6 @@ export default function ReportPreviewScreen() {
     setIsLoading(true);
     const { data } = await getReportById(reportId);
     if (data) {
-      setReport(data);
       const reportHtml = generateReportHtml(data);
       setHtml(reportHtml);
     }
