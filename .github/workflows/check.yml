@@ -21,10 +21,10 @@ jobs:
           node-version: 20
 
       - name: 📦 Install dependencies
-        run: npm install --no-audit --no-fund
+        run: yarn install --ignore-scripts --non-interactive
 
       - name: 🔍 Type check
-        run: npx tsc --noEmit
+        run: yarn tsc --noEmit
 
       - name: 🧹 Lint
         run: npm run lint

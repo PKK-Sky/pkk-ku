@@ -33,7 +33,7 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: 📦 Install dependencies
-        run: npm install --no-audit --no-fund
+        run: yarn install --ignore-scripts --non-interactive
 
       - name: 📤 Submit Android
         if: github.event.inputs.platform == 'android' || github.event.inputs.platform == 'both'
