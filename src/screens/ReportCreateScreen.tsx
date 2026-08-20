@@ -180,7 +180,7 @@ Anda bisa mencoba lagi tanpa membuat laporan baru.`,
         <Button title="Galeri" onPress={pickFromLibrary} disabled={!canAddMore} />
       </View>
 
-      {images.map((img, idx) => (
+      {images.map((_, idx) => (
         <View key={idx} style={{ marginBottom: 8, flexDirection: 'row', alignItems: 'center' }}>
           <Text style={{ flex: 1 }}>Foto {idx + 1}</Text>
           <Button title="Hapus" onPress={() => removeImage(idx)} color="#dc3545" />
