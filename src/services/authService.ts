@@ -3,7 +3,7 @@
  * Sesuai kontrak backend §3.
  */
 import { supabase } from '@lib/supabase';
-import type { MemberWithPosition, Profile, Position, Member } from '@types';
+import type { MemberWithPosition } from '@types';
 import { isEligiblePosition } from '@constants';
 
 export interface AuthCheckResult {
