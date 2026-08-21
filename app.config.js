@@ -8,7 +8,7 @@ module.exports = ({ config }) => {
     config.extra?.supabaseAnonKey ||
     '';
 
-  if (!supabaseAnonKey || supabaseAnonKey.startsWith(dollarOpen)) {
+  if (!supabaseAnonKey || supabaseAnonKey.startsWith(String.fromCharCode(36) + '{')) {
     throw new Error(
       'EXPO_PUBLIC_SUPABASE_ANON_KEY belum tersedia. Tambahkan secret tersebut ke environment EAS sebelum build.'
     );
