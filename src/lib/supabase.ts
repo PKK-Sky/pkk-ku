@@ -3,38 +3,30 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 import Constants from 'expo-constants';
 
-const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl
-  ?? process.env.EXPO_PUBLIC_SUPABASE_URL
-  ?? '';
+type ExpoExtra = { supabaseUrl?: string; supabaseAnonKey?: string };
+const extra = (Constants.expoConfig?.extra ?? {}) as ExpoExtra;
 
-const supabaseAnonKey = Constants.expoConfig?.extra?.supabaseAnonKey
-  ?? process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY
-  ?? '';
+export const supabaseUrl = extra.supabaseUrl ?? process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
+export const supabaseAnonKey = extra.supabaseAnonKey ?? process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
+export const supabaseConfigError =
+  !supabaseUrl || !supabaseAnonKey || supabaseAnonKey.startsWith(String.fromCharCode(36) + '{')
+    ? 'Konfigurasi Supabase belum tersedia di aplikasi. Buat build baru dengan EXPO_PUBLIC_SUPABASE_ANON_KEY.'
+    : null;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error(
-    '[Supabase] URL atau Anon Key tidak ditemukan. ' +
-    'Pastikan EXPO_PUBLIC_SUPABASE_URL dan EXPO_PUBLIC_SUPABASE_ANON_KEY sudah diatur.'
-  );
-}
+if (supabaseConfigError) console.error('[Supabase]', supabaseConfigError);
 
-/**
- * Supabase client dengan session persistence menggunakan AsyncStorage.
- * HANYA menggunakan Anon Key — JANGAN memasukkan Service Role Key ke sini.
- */
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    storage: AsyncStorage,
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: false,
-  },
-});
+/** HANYA menggunakan Anon Key — JANGAN memasukkan Service Role Key ke sini. */
+export const supabase = createClient(
+  supabaseUrl || 'https://invalid.supabase.local',
+  supabaseAnonKey || 'missing-anon-key',
+  {
+    auth: {
+      storage: AsyncStorage,
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: false,
+    },
+  }
+);
 
-/**
- * Tipe untuk response Supabase yang terstandarisasi
- */
-export interface SupabaseResponse<T> {
-  data: T | null;
-  error: Error | null;
-}
+export interface SupabaseResponse<T> { data: T | null; error: Error | null }
