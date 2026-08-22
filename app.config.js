@@ -8,10 +8,10 @@ module.exports = ({ config }) => {
     config.extra?.supabaseAnonKey ||
     '';
 
+  // Jangan menghentikan expo config saat key hanya tersedia di tahap EAS build.
+  // Client akan menampilkan konfigurasi error jika key benar-benar kosong.
   if (!supabaseAnonKey || supabaseAnonKey.startsWith(String.fromCharCode(36) + '{')) {
-    throw new Error(
-      'EXPO_PUBLIC_SUPABASE_ANON_KEY belum tersedia. Tambahkan secret tersebut ke environment EAS sebelum build.'
-    );
+    console.warn('EXPO_PUBLIC_SUPABASE_ANON_KEY belum tersedia pada tahap config.');
   }
 
   return {
