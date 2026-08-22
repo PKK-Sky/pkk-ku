@@ -42,7 +42,6 @@ import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '@lib/supabase';
 import { useAuth } from '@hooks/useAuth';
 
-const { width: SCREEN_W } = Dimensions.get('window');
 
 // ═══════════════════════════════════════════════════════════════════
 // PALET WARNA — Tosca Hijau Biru (Gen Z Muted Premium)
@@ -129,7 +128,7 @@ function showAlert(title: string, message: string, onOk?: () => void) {
 // ═══════════════════════════════════════════════════════════════════
 // COMPONENT
 // ═══════════════════════════════════════════════════════════════════
-export default function LoginScreen({ navigation }: { navigation: any }) {
+export default function LoginScreen() {
   // ── Fonts ──
   const [fontsLoaded] = useFonts({
     Baloo2_700Bold,
@@ -401,7 +400,7 @@ export default function LoginScreen({ navigation }: { navigation: any }) {
       }
 
       // STEP C: Panggil RPC complete_member_registration (SECURITY DEFINER)
-      const { data: rpcData, error: rpcError } = await supabase.rpc('complete_member_registration', {
+      const { error: rpcError } = await supabase.rpc('complete_member_registration', {
         p_phone: fullPhone,
         p_address: address || null,
         p_avatar_url: avatarUrl || null,
