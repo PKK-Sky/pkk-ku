@@ -1,12 +1,10 @@
-// LoginScreen.tsx
+// src/screens/LoginScreen.tsx
 // Layar login "My PKK Warakas" untuk Expo / React Native.
-// Padankan dengan RPC Supabase: check_member_by_phone, complete_member_registration.
+// Terintegrasi penuh dengan Supabase: RPC check_member_by_phone & Auth admin.
 //
-// Dependensi yang perlu diinstal:
+// Dependensi:
 //   npx expo install expo-linear-gradient @expo/vector-icons
 //   npx expo install @expo-google-fonts/baloo-2 @expo-google-fonts/plus-jakarta-sans expo-font expo-splash-screen
-//
-// Taruh file logo di: assets/icon.png (sudah transparan, tidak perlu diedit)
 
 import React, { useCallback, useState } from 'react';
 import {
@@ -21,6 +19,7 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -31,8 +30,11 @@ import {
   PlusJakartaSans_700Bold,
 } from '@expo-google-fonts/plus-jakarta-sans';
 
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../context/AuthContext';
+
 // -----------------------------------------------------------------------
-// Palet warna tosca (samakan dengan token di web)
+// Palet warna tosca
 // -----------------------------------------------------------------------
 const colors = {
   toscaDeep: '#0B5D59',
@@ -47,9 +49,13 @@ const colors = {
   errorText: '#9A2A2A',
 };
 
-type Status = { kind: 'info' | 'error'; text: string } | null;
+type Status = { kind: 'info' | 'error' | 'success'; text: string } | null;
 
-export default function LoginScreen() {
+interface LoginScreenProps {
+  navigation: any;
+}
+
+export default function LoginScreen({ navigation }: LoginScreenProps) {
   const [fontsLoaded] = useFonts({
     Baloo2_700Bold,
     Baloo2_600SemiBold,
@@ -57,6 +63,8 @@ export default function LoginScreen() {
     PlusJakartaSans_600SemiBold,
     PlusJakartaSans_700Bold,
   });
+
+  const { setSession } = useAuth();
 
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
@@ -66,74 +74,151 @@ export default function LoginScreen() {
   const [adminEmail, setAdminEmail] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
   const [adminLoading, setAdminLoading] = useState(false);
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
 
-  // ---------------------------------------------------------------
-  // Submit nomor HP -> panggil RPC check_member_by_phone di Supabase
-  // ---------------------------------------------------------------
+  // -------------------------------------------------------------
+  // Validasi & normalisasi nomor HP
+  // -------------------------------------------------------------
+  const normalizePhone = (raw: string): string => {
+    let cleaned = raw.trim().replace(/\D/g, '');
+    if (cleaned.startsWith('62')) {
+      cleaned = cleaned.slice(2);
+    } else if (cleaned.startsWith('0')) {
+      cleaned = cleaned.slice(1);
+    }
+    return cleaned;
+  };
+
+  // -------------------------------------------------------------
+  // Submit nomor HP -> RPC check_member_by_phone
+  // -------------------------------------------------------------
   const handleSubmitPhone = useCallback(async () => {
-    if (phone.trim().length < 8) {
-      setStatus({ kind: 'error', text: 'Masukkan nomor HP yang valid.' });
+    const normalized = normalizePhone(phone);
+    if (normalized.length < 9 || normalized.length > 12) {
+      setStatus({ kind: 'error', text: 'Masukkan nomor HP yang valid (9-12 digit).' });
       return;
     }
+
     setLoading(true);
     setStatus({ kind: 'info', text: 'Menghubungkan ke sistem keanggotaan…' });
 
     try {
-      // Ganti dengan pemanggilan nyata:
-      // const { data, error } = await supabase.rpc('check_member_by_phone', {
-      //   p_phone: '0' + phone.trim(),
-      // });
-      // if (error) throw error;
-      // if (!data.found) { setStatus({ kind: 'error', text: data.message }); return; }
-      // if (data.already_registered) { /* arahkan ke layar OTP-login */ return; }
-      // if (data.blocked) { setStatus({ kind: 'error', text: data.message }); return; }
-      // /* lanjut ke layar OTP + lengkapi profil, bawa data.full_name & data.position_name */
+      const fullPhone = '0' + normalized;
 
-      await new Promise((r) => setTimeout(r, 900)); // placeholder demo
-      setStatus({ kind: 'info', text: 'Nomor ditemukan. Melanjutkan ke verifikasi OTP…' });
+      const { data, error } = await supabase.rpc('check_member_by_phone', {
+        p_phone: fullPhone,
+      });
+
+      if (error) {
+        console.error('RPC error:', error);
+        throw new Error('Gagal menghubungi server. Coba lagi nanti.');
+      }
+
+      if (!data?.found) {
+        setStatus({ kind: 'error', text: data?.message ?? 'Nomor tidak ditemukan dalam data keanggotaan.' });
+        return;
+      }
+
+      if (data.blocked) {
+        setStatus({ kind: 'error', text: data.message ?? 'Akun ini diblokir. Hubungi pengurus.' });
+        return;
+      }
+
+      if (data.already_registered) {
+        // Anggota sudah daftar → arahkan ke layar OTP-login
+        setStatus({ kind: 'success', text: 'Nomor ditemukan. Mengalihkan ke verifikasi…' });
+        setTimeout(() => {
+          navigation.navigate('OtpVerify', {
+            phone: fullPhone,
+            mode: 'login',
+            memberData: {
+              full_name: data.full_name,
+              position_name: data.position_name,
+            },
+          });
+        }, 600);
+        return;
+      }
+
+      // Anggota belum daftar → arahkan ke layar lengkapi profil + OTP
+      setStatus({ kind: 'success', text: 'Nomor ditemukan. Lengkapi pendaftaran…' });
+      setTimeout(() => {
+        navigation.navigate('OtpVerify', {
+          phone: fullPhone,
+          mode: 'register',
+          memberData: {
+            full_name: data.full_name,
+            position_name: data.position_name,
+          },
+        });
+      }, 600);
     } catch (err: any) {
-      setStatus({ kind: 'error', text: err?.message ?? 'Terjadi kesalahan. Coba lagi.' });
+      console.error('Phone submit error:', err);
+      setStatus({ kind: 'error', text: err?.message ?? 'Terjadi kesalahan. Silakan coba lagi.' });
     } finally {
       setLoading(false);
     }
-  }, [phone]);
+  }, [phone, navigation]);
 
-  // ---------------------------------------------------------------
+  // -------------------------------------------------------------
   // Submit login admin -> supabase.auth.signInWithPassword
-  // ---------------------------------------------------------------
+  // -------------------------------------------------------------
   const handleAdminSubmit = useCallback(async () => {
-    if (!adminEmail || !adminPassword) return;
+    if (!adminEmail.trim() || !adminPassword) {
+      Alert.alert('Data belum lengkap', 'Email dan kata sandi wajib diisi.');
+      return;
+    }
+
     setAdminLoading(true);
+    setStatus(null);
+
     try {
-      // const { error } = await supabase.auth.signInWithPassword({
-      //   email: adminEmail,
-      //   password: adminPassword,
-      // });
-      // if (error) throw error;
-      await new Promise((r) => setTimeout(r, 700)); // placeholder demo
-      setAdminModalOpen(false);
-    } catch (err) {
-      // tampilkan error sesuai kebutuhan
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: adminEmail.trim(),
+        password: adminPassword,
+      });
+
+      if (error) {
+        if (error.message.includes('Invalid login credentials')) {
+          throw new Error('Email atau kata sandi salah.');
+        }
+        throw error;
+      }
+
+      if (data.session) {
+        setSession(data.session);
+        setAdminModalOpen(false);
+        setAdminEmail('');
+        setAdminPassword('');
+        // Navigation ke dashboard admin ditangani oleh AuthContext / Navigator
+      }
+    } catch (err: any) {
+      console.error('Admin login error:', err);
+      Alert.alert('Gagal Masuk', err?.message ?? 'Terjadi kesalahan saat login.');
     } finally {
       setAdminLoading(false);
     }
-  }, [adminEmail, adminPassword]);
+  }, [adminEmail, adminPassword, setSession]);
 
+  // -------------------------------------------------------------
+  // Loading font
+  // -------------------------------------------------------------
   if (!fontsLoaded) {
     return (
       <View style={styles.loadingScreen}>
-        <ActivityIndicator color={colors.tosca} />
+        <ActivityIndicator size="large" color={colors.tosca} />
+        <Text style={styles.loadingText}>Memuat…</Text>
       </View>
     );
   }
 
   return (
     <View style={styles.screen}>
-      {/* blob ambient halus, senada dengan versi web */}
+      {/* Blob ambient */}
       <View style={[styles.blob, styles.blobA]} />
       <View style={[styles.blob, styles.blobB]} />
 
-      {/* tombol akses admin, pojok kanan atas */}
+      {/* Tombol akses admin */}
       <Pressable
         style={({ pressed }) => [styles.adminBtn, pressed && styles.adminBtnPressed]}
         onPress={() => setAdminModalOpen(true)}
@@ -154,7 +239,7 @@ export default function LoginScreen() {
         >
           <View style={styles.authCard}>
             <Image
-              source={require('./assets/icon.png')}
+              source={require('../../assets/icon.png')}
               style={styles.logo}
               resizeMode="contain"
             />
@@ -165,13 +250,24 @@ export default function LoginScreen() {
               <View
                 style={[
                   styles.statusMsg,
-                  status.kind === 'error' ? styles.statusError : styles.statusInfo,
+                  status.kind === 'error'
+                    ? styles.statusError
+                    : status.kind === 'success'
+                    ? styles.statusSuccess
+                    : styles.statusInfo,
                 ]}
               >
                 <Text
                   style={[
                     styles.statusText,
-                    { color: status.kind === 'error' ? colors.errorText : colors.toscaDeep },
+                    {
+                      color:
+                        status.kind === 'error'
+                          ? colors.errorText
+                          : status.kind === 'success'
+                          ? colors.toscaDeep
+                          : colors.toscaDeep,
+                    },
                   ]}
                 >
                   {status.text}
@@ -187,14 +283,19 @@ export default function LoginScreen() {
                 placeholderTextColor="#9FB8B4"
                 keyboardType="number-pad"
                 autoComplete="tel"
+                textContentType="telephoneNumber"
                 value={phone}
                 onChangeText={setPhone}
                 maxLength={13}
+                editable={!loading}
               />
             </View>
 
             <Pressable
-              style={({ pressed }) => [styles.btnPrimaryWrap, pressed && { opacity: 0.9 }]}
+              style={({ pressed }) => [
+                styles.btnPrimaryWrap,
+                (pressed || loading) && { opacity: 0.9 },
+              ]}
               onPress={handleSubmitPhone}
               disabled={loading}
               accessibilityRole="button"
@@ -221,7 +322,14 @@ export default function LoginScreen() {
 
             <Text style={styles.helperRow}>
               Nomor sudah didaftarkan pengurus?{' '}
-              <Text style={styles.helperLink}>Buat akun</Text>
+              <Text
+                style={styles.helperLink}
+                onPress={() =>
+                  navigation.navigate('OtpVerify', { mode: 'register', phone: '' })
+                }
+              >
+                Buat akun
+              </Text>
             </Text>
 
             <Text style={styles.footNote}>Tim Penggerak PKK · Kelurahan Warakas</Text>
@@ -234,13 +342,28 @@ export default function LoginScreen() {
         visible={adminModalOpen}
         transparent
         animationType="fade"
-        onRequestClose={() => setAdminModalOpen(false)}
+        onRequestClose={() => {
+          setAdminModalOpen(false);
+          setAdminEmail('');
+          setAdminPassword('');
+        }}
       >
-        <View style={styles.modalBackdrop}>
+        <Pressable
+          style={styles.modalBackdrop}
+          onPress={() => {
+            setAdminModalOpen(false);
+            setAdminEmail('');
+            setAdminPassword('');
+          }}
+        >
           <View style={styles.modalCard}>
             <Pressable
               style={styles.modalClose}
-              onPress={() => setAdminModalOpen(false)}
+              onPress={() => {
+                setAdminModalOpen(false);
+                setAdminEmail('');
+                setAdminPassword('');
+              }}
               accessibilityLabel="Tutup"
             >
               <Ionicons name="close" size={16} color={colors.toscaDeep} />
@@ -259,22 +382,43 @@ export default function LoginScreen() {
               placeholderTextColor="#9FB8B4"
               autoCapitalize="none"
               keyboardType="email-address"
+              autoComplete="email"
+              textContentType="emailAddress"
               value={adminEmail}
               onChangeText={setAdminEmail}
+              editable={!adminLoading}
             />
 
             <Text style={styles.modalLabel}>Kata sandi</Text>
-            <TextInput
-              style={styles.modalInput}
-              placeholder="••••••••"
-              placeholderTextColor="#9FB8B4"
-              secureTextEntry
-              value={adminPassword}
-              onChangeText={setAdminPassword}
-            />
+            <View style={styles.passwordWrap}>
+              <TextInput
+                style={styles.passwordInput}
+                placeholder="••••••••"
+                placeholderTextColor="#9FB8B4"
+                secureTextEntry={!showAdminPassword}
+                textContentType="password"
+                value={adminPassword}
+                onChangeText={setAdminPassword}
+                editable={!adminLoading}
+              />
+              <Pressable
+                onPress={() => setShowAdminPassword((v) => !v)}
+                style={styles.eyeBtn}
+                accessibilityLabel={showAdminPassword ? 'Sembunyikan sandi' : 'Tampilkan sandi'}
+              >
+                <Ionicons
+                  name={showAdminPassword ? 'eye-off-outline' : 'eye-outline'}
+                  size={18}
+                  color={colors.inkSoft}
+                />
+              </Pressable>
+            </View>
 
             <Pressable
-              style={({ pressed }) => [styles.btnAdmin, pressed && { opacity: 0.9 }]}
+              style={({ pressed }) => [
+                styles.btnAdmin,
+                (pressed || adminLoading) && { opacity: 0.9 },
+              ]}
               onPress={handleAdminSubmit}
               disabled={adminLoading}
             >
@@ -285,7 +429,7 @@ export default function LoginScreen() {
               )}
             </Pressable>
           </View>
-        </View>
+        </Pressable>
       </Modal>
     </View>
   );
@@ -297,6 +441,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.white,
+    gap: 12,
+  },
+  loadingText: {
+    fontFamily: 'PlusJakartaSans_400Regular',
+    fontSize: 14,
+    color: colors.inkSoft,
   },
   screen: {
     flex: 1,
@@ -381,6 +531,7 @@ const styles = StyleSheet.create({
   },
   statusInfo: { backgroundColor: colors.toscaSoft },
   statusError: { backgroundColor: colors.errorBg },
+  statusSuccess: { backgroundColor: '#E8F5E9' },
   statusText: {
     fontFamily: 'PlusJakartaSans_400Regular',
     fontSize: 13,
@@ -530,6 +681,27 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.ink,
     marginBottom: 14,
+  },
+  passwordWrap: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: colors.line,
+    borderRadius: 16,
+    marginBottom: 14,
+    paddingRight: 10,
+  },
+  passwordInput: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    fontFamily: 'PlusJakartaSans_400Regular',
+    fontSize: 14,
+    color: colors.ink,
+  },
+  eyeBtn: {
+    padding: 6,
   },
   btnAdmin: {
     width: '100%',
