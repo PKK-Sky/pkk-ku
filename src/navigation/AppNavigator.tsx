@@ -7,6 +7,7 @@ import type { RootStackParamList } from '@types';
 // Screens
 import LoginScreen from '@screens/LoginScreen';
 import HomeScreen from '@screens/HomeScreen';
+import AdminDashboardScreen from '@screens/AdminDashboardScreen';
 import ReportListScreen from '@screens/ReportListScreen';
 import ReportDetailScreen from '@screens/ReportDetailScreen';
 import ReportCreateScreen from '@screens/ReportCreateScreen';
@@ -17,9 +18,12 @@ import AccessDeniedScreen from '@screens/AccessDeniedScreen';
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function AppNavigator() {
-  const { isAuthenticated, isLoading } = useAuthContext();
+  const { isAuthenticated, isLoading, isAdmin, isRoleLoading } = useAuthContext();
 
-  if (isLoading) {
+  // Tunggu session DAN role selesai dimuat sebelum memutuskan stack mana yang
+  // ditampilkan — supaya admin tidak sempat "kelihatan" masuk ke Home anggota
+  // sesaat sebelum role-nya diketahui (dan sebaliknya).
+  if (isLoading || (isAuthenticated && isRoleLoading)) {
     // Bisa diganti dengan splash screen
     return null;
   }
@@ -34,6 +38,13 @@ export default function AppNavigator() {
       >
         {!isAuthenticated ? (
           <Stack.Screen name="Login" component={LoginScreen} />
+        ) : isAdmin ? (
+          <>
+            <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
+            <Stack.Screen name="ReportDetail" component={ReportDetailScreen} />
+            <Stack.Screen name="ReportPdfViewer" component={ReportPdfViewerScreen} />
+            <Stack.Screen name="AccessDenied" component={AccessDeniedScreen} />
+          </>
         ) : (
           <>
             <Stack.Screen name="Home" component={HomeScreen} />
