@@ -4,6 +4,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from '@context/AuthContext';
 import AppNavigator from '@navigation/AppNavigator';
 import VideoIntroScreen from '@screens/VideoIntroScreen';
+import UpdateBanner from '@components/UpdateBanner';
 
 export default function App() {
   const [showIntro, setShowIntro] = useState(true);
@@ -19,6 +20,7 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
+        <UpdateBanner />
         <AppNavigator />
         <StatusBar style="auto" />
       </AuthProvider>
