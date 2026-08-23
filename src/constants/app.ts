@@ -1,6 +1,12 @@
 /**
  * Konfigurasi aplikasi
  */
+/**
+ * Email akun admin di Supabase Auth. Modal "Akses Admin" hanya meminta kode/password
+ * (bukan email) — email tetap ini di belakang layar karena akun admin cuma satu.
+ */
+export const ADMIN_EMAIL = 'admin@pkk.com';
+
 export const APP_CONFIG = {
   NAME: 'PKK Laporan Kegiatan',
   VERSION: '1.0.0',
