@@ -8,6 +8,8 @@ import type { RootStackParamList } from '@types';
 import LoginScreen from '@screens/LoginScreen';
 import HomeScreen from '@screens/HomeScreen';
 import AdminDashboardScreen from '@screens/AdminDashboardScreen';
+import AdminPostsScreen from '@screens/AdminPostsScreen';
+import AdminReportsScreen from '@screens/AdminReportsScreen';
 import ReportListScreen from '@screens/ReportListScreen';
 import ReportDetailScreen from '@screens/ReportDetailScreen';
 import ReportCreateScreen from '@screens/ReportCreateScreen';
@@ -41,6 +43,8 @@ export default function AppNavigator() {
         ) : isAdmin ? (
           <>
             <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
+            <Stack.Screen name="AdminPosts" component={AdminPostsScreen} />
+            <Stack.Screen name="AdminReports" component={AdminReportsScreen} />
             <Stack.Screen name="ReportDetail" component={ReportDetailScreen} />
             <Stack.Screen name="ReportPdfViewer" component={ReportPdfViewerScreen} />
             <Stack.Screen name="AccessDenied" component={AccessDeniedScreen} />
