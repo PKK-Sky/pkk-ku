@@ -40,6 +40,9 @@ jobs:
       - name: 📦 Install dependencies
         run: yarn install --ignore-scripts --non-interactive
 
+      - name: 🩺 Perbaiki versi paket Expo otomatis
+        run: npx expo install --fix
+
       - name: 🔍 Type check
         run: yarn tsc --noEmit
         continue-on-error: true
