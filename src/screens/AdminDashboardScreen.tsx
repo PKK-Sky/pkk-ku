@@ -15,6 +15,8 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useFonts } from 'expo-font';
 import { SpaceGrotesk_600SemiBold, SpaceGrotesk_700Bold } from '@expo-google-fonts/space-grotesk';
 import {
@@ -34,7 +36,7 @@ import {
   unblockMember,
   type AdminDashboardStats,
 } from '@services';
-import type { MemberWithPosition, Position, RegistrationStatus } from '@types';
+import type { MemberWithPosition, Position, RegistrationStatus, RootStackParamList } from '@types';
 
 const COLORS = {
   bluePrimary: '#1D63ED',
@@ -75,6 +77,8 @@ export default function AdminDashboardScreen() {
     Inter_600SemiBold,
     Inter_700Bold,
   });
+
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   const [stats, setStats] = useState<AdminDashboardStats | null>(null);
   const [members, setMembers] = useState<MemberWithPosition[]>([]);
@@ -255,8 +259,8 @@ export default function AdminDashboardScreen() {
             <Text style={styles.sectionTitle}>Menu Cepat</Text>
             <View style={styles.quickActions}>
               <QuickAction label="Kelola Pengumuman" icon="📣" onPress={() => handleComingSoon('Kelola Pengumuman')} />
-              <QuickAction label="Semua Laporan Masuk" icon="📄" onPress={() => handleComingSoon('Semua Laporan Masuk')} />
-              <QuickAction label="Moderasi Postingan" icon="🛡️" onPress={() => handleComingSoon('Moderasi Postingan')} />
+              <QuickAction label="Semua Laporan Masuk" icon="📄" onPress={() => navigation.navigate('AdminReports')} />
+              <QuickAction label="Moderasi Postingan" icon="🛡️" onPress={() => navigation.navigate('AdminPosts')} />
             </View>
 
             {/* ================= MEMBERS ================= */}
