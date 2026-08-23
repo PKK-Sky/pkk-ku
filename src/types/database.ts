@@ -24,7 +24,9 @@ export interface Report {
   updated_at: string; // ISO 8601
 }
 
-export type ReportStatus = 'draft' | 'submitted' | 'approved' | 'rejected';
+/** Constraint aktual backend: `status text not null default 'sent' check (status = 'sent')`.
+ *  Belum ada workflow draft/approve/reject — semua laporan yang tersimpan otomatis 'sent'. */
+export type ReportStatus = 'sent';
 
 // Payload insert reports — HANYA field input user
 export interface ReportInsertPayload {
@@ -82,36 +84,69 @@ export type RecipientType = 'admin' | 'ketua' | 'wakil_ketua';
 // ──────────────────────────────────────────
 export interface Profile {
   id: string;
-  email: string | null;
-  full_name: string | null;
-  avatar_url: string | null;
+  name: string;
+  role: ProfileRole;
   created_at: string;
   updated_at: string;
 }
+
+export type ProfileRole = 'admin' | 'user';
 
 // ──────────────────────────────────────────
 // TABEL: members
 // ──────────────────────────────────────────
 export interface Member {
   id: string;
-  user_id: string;
-  position_id: string | null;
+  user_id: string | null;
+  full_name: string;
+  phone: string;
+  position_id: string;
+  address: string | null;
+  avatar_url: string | null;
   registration_status: RegistrationStatus;
   created_at: string;
   updated_at: string;
 }
 
-export type RegistrationStatus = 'active' | 'pending' | 'inactive' | 'rejected';
+export type RegistrationStatus = 'pending' | 'active' | 'blocked';
 
 // ──────────────────────────────────────────
 // TABEL: positions
 // ──────────────────────────────────────────
 export interface Position {
   id: string;
+  code: string;
   name: string;
-  level: number | null;
+  type: PositionType;
+  sort_order: number | null;
+  created_at: string;
+}
+
+export type PositionType = 'leadership' | 'pokja';
+
+// ──────────────────────────────────────────
+// TABEL: announcements
+// ──────────────────────────────────────────
+export interface Announcement {
+  id: string;
+  title: string | null;
+  message: string;
+  created_by: string | null;
+  is_active: boolean;
+  start_at: string | null;
+  end_at: string | null;
+  display_duration_seconds: number;
   created_at: string;
   updated_at: string;
+}
+
+export interface AnnouncementInsertPayload {
+  title?: string | null;
+  message: string;
+  is_active?: boolean;
+  start_at?: string | null;
+  end_at?: string | null;
+  display_duration_seconds?: number;
 }
 
 // ──────────────────────────────────────────
@@ -124,7 +159,6 @@ export interface ReportWithDetails extends Report {
 
 export interface MemberWithPosition extends Member {
   position: Position | null;
-  profile: Profile | null;
 }
 
 export interface CreatorIdentity {
