@@ -30,7 +30,7 @@ import { useAuth } from '@hooks';
 
 // ============================================================
 // DESIGN SYSTEM — My PKK Warakas
-// Tema: Biru Tosca + Putih | Instagram × E-Wallet Indonesia
+// Tema: Biru Tosca + Navy | Instagram × E-Wallet Indonesia
 // ============================================================
 const COLORS = {
   // Primary — Biru Tosca
@@ -47,6 +47,7 @@ const COLORS = {
   ink: '#1A1A2E',
   inkSoft: '#6B7280',
   inkMuted: '#9CA3AF',
+  navy: '#0D1B4C',
 
   // Borders & Lines
   line: '#E5E7EB',
@@ -210,7 +211,7 @@ export default function LoginScreen() {
             <View style={styles.heroCircle1} />
             <View style={styles.heroCircle2} />
 
-            {/* Admin trigger */}
+            {/* Admin trigger — TETAP ADA */}
             <Pressable
               style={styles.adminTrigger}
               onPress={() => setAdminModalVisible(true)}
@@ -219,17 +220,20 @@ export default function LoginScreen() {
               <Text style={styles.adminTriggerIcon}>⚙</Text>
             </Pressable>
 
-            {/* Brand */}
+            {/* Brand: Logo besar kiri + Gambar teks kanan */}
             <View style={styles.brandBlock}>
               <Image
                 source={require('../../assets/images/icon.png')}
                 style={styles.brandMark}
                 resizeMode="contain"
               />
-              <View style={styles.brandCopy}>
-                <Text style={styles.brandWordmarkSmall}>Selamat Datang di</Text>
-                <Text style={styles.brandWordmarkBig}>My PKK Warakas</Text>
-              </View>
+              <Image
+                source={{
+                  uri: 'https://vmbqsogwiaqwqmjpobge.supabase.co/storage/v1/object/public/images/teks_header_login.png',
+                }}
+                style={styles.brandTextImage}
+                resizeMode="contain"
+              />
             </View>
 
             {/* Quote */}
@@ -322,26 +326,16 @@ export default function LoginScreen() {
               </LinearGradient>
             </Pressable>
 
-            {/* Divider */}
-            <View style={styles.dividerRow}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>atau</Text>
-              <View style={styles.dividerLine} />
+            {/* Teks Aktivasi — dipindah ke bawah tombol CTA */}
+            <View style={styles.activationRow}>
+              <Pressable onPress={handleActivation} hitSlop={8}>
+                <Text style={styles.activationLink}>Aktivasi akun disini sayyy...!! ✨</Text>
+              </Pressable>
             </View>
 
-            {/* Admin login button */}
-            <Pressable
-              style={styles.adminOutlineBtn}
-              onPress={() => setAdminModalVisible(true)}
-            >
-              <Text style={styles.adminOutlineBtnText}>Masuk Sebagai Admin</Text>
-            </Pressable>
-
-            {/* Footer */}
-            <View style={styles.footerRow}>
-              <Pressable onPress={handleActivation} hitSlop={8}>
-                <Text style={styles.footerLink}>Aktivasi akun disini sayyy...!! ✨</Text>
-              </Pressable>
+            {/* Footer hardcode */}
+            <View style={styles.footerHardcode}>
+              <Text style={styles.footerHardcodeText}>Digital_PkkWarakas@2026</Text>
             </View>
           </View>
         </ScrollView>
@@ -443,9 +437,9 @@ const styles = StyleSheet.create({
   // ================= HERO =================
   hero: {
     paddingHorizontal: 20,
-    paddingBottom: 28,
+    paddingBottom: 24,
     justifyContent: 'space-between',
-    minHeight: 280,
+    minHeight: 200,
     position: 'relative',
     overflow: 'hidden',
   },
@@ -491,36 +485,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
-    marginTop: 8,
+    marginTop: 6,
   },
   brandMark: {
-    width: 80,
-    height: 80,
-    borderRadius: 20,
+    width: 110,
+    height: 110,
+    borderRadius: 22,
     backgroundColor: 'rgba(255,255,255,0.15)',
   },
-  brandCopy: {
+  brandTextImage: {
     flex: 1,
-    gap: 2,
-  },
-  brandWordmarkSmall: {
-    color: 'rgba(255,255,255,0.75)',
-    fontSize: 12,
-    fontFamily: 'Inter_500Medium',
-  },
-  brandWordmarkBig: {
-    color: '#fff',
-    fontSize: 22,
-    fontFamily: 'SpaceGrotesk_700Bold',
-    letterSpacing: -0.5,
+    height: 60,
   },
 
   quoteRow: {
     flexDirection: 'row',
     gap: 8,
     alignItems: 'flex-start',
-    marginTop: 18,
-    marginBottom: 8,
+    marginTop: 14,
+    marginBottom: 4,
   },
   quoteMark: {
     fontSize: 18,
@@ -543,7 +526,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     paddingHorizontal: 24,
     paddingTop: 20,
-    paddingBottom: 36,
+    paddingBottom: 28,
     flex: 1,
     ...SHADOWS.card,
   },
@@ -557,8 +540,8 @@ const styles = StyleSheet.create({
   },
   sheetTitle: {
     fontFamily: 'SpaceGrotesk_700Bold',
-    fontSize: 20,
-    color: COLORS.ink,
+    fontSize: 22,
+    color: COLORS.navy,
     marginBottom: 4,
   },
   sheetSubtitle: {
@@ -570,10 +553,11 @@ const styles = StyleSheet.create({
 
   // ================= FIELDS =================
   fieldLabel: {
-    fontSize: 12,
-    fontFamily: 'Inter_600SemiBold',
-    color: COLORS.ink,
+    fontSize: 13,
+    fontFamily: 'Inter_700Bold',
+    color: COLORS.navy,
     marginBottom: 8,
+    letterSpacing: 0.3,
   },
   fieldBox: {
     flexDirection: 'row',
@@ -598,7 +582,7 @@ const styles = StyleSheet.create({
   ccText: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 14,
-    color: COLORS.ink,
+    color: COLORS.navy,
   },
   flag: {
     fontSize: 15,
@@ -606,8 +590,8 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 15,
-    fontFamily: 'Inter_500Medium',
-    color: COLORS.ink,
+    fontFamily: 'Inter_600SemiBold',
+    color: COLORS.navy,
     padding: 0,
   },
   eyeBtn: {
@@ -658,47 +642,29 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
 
-  // Divider
-  dividerRow: {
-    flexDirection: 'row',
+  // Activation link — dipindah ke bawah CTA
+  activationRow: {
     alignItems: 'center',
-    gap: 12,
-    marginVertical: 20,
+    marginTop: 18,
+    marginBottom: 6,
   },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: COLORS.line,
-  },
-  dividerText: {
-    fontSize: 12,
-    color: COLORS.inkMuted,
-    fontFamily: 'Inter_500Medium',
-  },
-
-  // Admin outline button
-  adminOutlineBtn: {
-    borderWidth: 1.5,
-    borderColor: COLORS.primary,
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  adminOutlineBtnText: {
-    fontFamily: 'SpaceGrotesk_600SemiBold',
-    fontSize: 14,
-    color: COLORS.primary,
-  },
-
-  footerRow: {
-    alignItems: 'center',
-    marginTop: 24,
-  },
-  footerLink: {
+  activationLink: {
     fontSize: 13,
     fontFamily: 'Inter_700Bold',
     color: COLORS.primary,
+  },
+
+  // Footer hardcode
+  footerHardcode: {
+    alignItems: 'center',
+    marginTop: 'auto',
+    paddingTop: 20,
+  },
+  footerHardcodeText: {
+    fontSize: 11,
+    fontFamily: 'Inter_500Medium',
+    color: COLORS.inkMuted,
+    letterSpacing: 0.5,
   },
 
   // ================= MODAL ADMIN =================
