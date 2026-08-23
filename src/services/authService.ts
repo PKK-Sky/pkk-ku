@@ -40,13 +40,16 @@ export async function checkReportEligibility(): Promise<AuthCheckResult> {
 
     const userId = sessionData.session.user.id;
 
-    // 2. Load member + position + profile
+    // 2. Load member + position
+    //    Catatan: TIDAK melakukan embed `profile:profiles(*)` di sini — members dan profiles
+    //    sama-sama mereferensi auth.users tapi tidak punya FK satu sama lain, sehingga
+    //    PostgREST tidak bisa meng-embed relasi itu (query akan gagal). full_name sudah
+    //    tersedia langsung di kolom members.full_name.
     const { data: memberData, error: memberError } = await supabase
       .from('members')
       .select(`
         *,
-        position:positions(*),
-        profile:profiles(*)
+        position:positions(*)
       `)
       .eq('user_id', userId)
       .single();
