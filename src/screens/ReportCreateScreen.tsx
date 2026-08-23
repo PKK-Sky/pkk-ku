@@ -119,7 +119,7 @@ Anda bisa mencoba lagi tanpa membuat laporan baru.`,
       {/* Read-only identity */}
       <View style={{ backgroundColor: '#f5f5f5', padding: 12, borderRadius: 8, marginBottom: 16 }}>
         <Text style={{ fontWeight: 'bold' }}>Pembuat:</Text>
-        <Text>{member?.profile?.full_name ?? 'N/A'} ({member?.position?.name ?? 'N/A'})</Text>
+        <Text>{member?.full_name ?? 'N/A'} ({member?.position?.name ?? 'N/A'})</Text>
       </View>
 
       {/* Form fields */}
