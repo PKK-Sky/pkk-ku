@@ -13,6 +13,7 @@ import {
   Modal,
   Alert,
   Animated,
+  StatusBar,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -27,18 +28,55 @@ import {
 } from '@expo-google-fonts/inter';
 import { useAuth } from '@hooks';
 
+// ============================================================
+// DESIGN SYSTEM — My PKK Warakas
+// Tema: Biru Tosca + Putih | Instagram × E-Wallet Indonesia
+// ============================================================
 const COLORS = {
-  bluePrimary: '#1D63ED',
-  blueDeep: '#0B1E3D',
-  gold: '#FFC629',
-  teal: '#22D3B5',
-  surface: '#F7F9FF',
-  ink: '#10162B',
-  inkSoft: '#5B6478',
-  line: '#E6EAF5',
-  heroFrom: '#7A4497',
-  heroMid: '#6B3985',
-  heroTo: '#5C2F72',
+  // Primary — Biru Tosca
+  primary: '#00BFA6',
+  primaryDark: '#009E8A',
+  primaryLight: '#E0F7F4',
+  secondary: '#00D9C0',
+
+  // Surfaces
+  surface: '#F5F7FA',
+  surfaceElevated: '#FFFFFF',
+
+  // Text
+  ink: '#1A1A2E',
+  inkSoft: '#6B7280',
+  inkMuted: '#9CA3AF',
+
+  // Borders & Lines
+  line: '#E5E7EB',
+
+  // Semantic
+  danger: '#EF4444',
+  warning: '#F59E0B',
+  success: '#10B981',
+
+  // Gradients
+  heroFrom: '#00BFA6',
+  heroMid: '#00CBB5',
+  heroTo: '#00D9C0',
+};
+
+const SHADOWS = {
+  cta: {
+    shadowColor: '#00BFA6',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+  card: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 4,
+  },
 };
 
 const QUOTES = [
@@ -61,7 +99,6 @@ const QUOTES = [
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
-  // Dua instance terpisah supaya loading/error form anggota tidak bercampur dengan modal admin
   const memberAuth = useAuth();
   const adminAuth = useAuth();
 
@@ -143,13 +180,14 @@ export default function LoginScreen() {
   if (!fontsLoaded) {
     return (
       <View style={styles.fontLoadingContainer}>
-        <ActivityIndicator color={COLORS.bluePrimary} />
+        <ActivityIndicator color={COLORS.primary} size="large" />
       </View>
     );
   }
 
   return (
     <View style={styles.root}>
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.heroFrom} />
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -158,6 +196,7 @@ export default function LoginScreen() {
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
           bounces={false}
+          showsVerticalScrollIndicator={false}
         >
           {/* ================= HERO ================= */}
           <LinearGradient
@@ -167,6 +206,11 @@ export default function LoginScreen() {
             end={{ x: 0.4, y: 1 }}
             style={[styles.hero, { paddingTop: insets.top + 12 }]}
           >
+            {/* Decorative circles */}
+            <View style={styles.heroCircle1} />
+            <View style={styles.heroCircle2} />
+
+            {/* Admin trigger */}
             <Pressable
               style={styles.adminTrigger}
               onPress={() => setAdminModalVisible(true)}
@@ -175,6 +219,7 @@ export default function LoginScreen() {
               <Text style={styles.adminTriggerIcon}>⚙</Text>
             </Pressable>
 
+            {/* Brand */}
             <View style={styles.brandBlock}>
               <Image
                 source={require('../../assets/images/icon.png')}
@@ -187,6 +232,7 @@ export default function LoginScreen() {
               </View>
             </View>
 
+            {/* Quote */}
             <View style={styles.quoteRow}>
               <Text style={styles.quoteMark}>✨</Text>
               <Animated.Text style={[styles.quoteText, { opacity: quoteOpacity }]}>
@@ -195,11 +241,15 @@ export default function LoginScreen() {
             </View>
           </LinearGradient>
 
-          {/* ================= SHEET ================= */}
+          {/* ================= LOGIN SHEET ================= */}
           <View style={styles.sheet}>
             <View style={styles.grabber} />
-            <Text style={styles.sheetTitle}>Masuk</Text>
+            <Text style={styles.sheetTitle}>Masuk ke Akun</Text>
+            <Text style={styles.sheetSubtitle}>
+              Masukkan nomor HP dan password untuk melanjutkan
+            </Text>
 
+            {/* Nomor HP */}
             <Text style={styles.fieldLabel}>Nomor HP</Text>
             <View style={styles.fieldBox}>
               <View style={styles.cc}>
@@ -209,7 +259,7 @@ export default function LoginScreen() {
               <TextInput
                 style={styles.input}
                 placeholder="812-3456-7890"
-                placeholderTextColor="#B7BFD1"
+                placeholderTextColor={COLORS.inkMuted}
                 keyboardType="phone-pad"
                 value={phone}
                 onChangeText={setPhone}
@@ -217,33 +267,49 @@ export default function LoginScreen() {
               />
             </View>
 
+            {/* Password */}
             <Text style={styles.fieldLabel}>Password</Text>
             <View style={styles.fieldBox}>
               <TextInput
                 style={styles.input}
                 placeholder="Masukkan password"
-                placeholderTextColor="#B7BFD1"
+                placeholderTextColor={COLORS.inkMuted}
                 secureTextEntry={!showPassword}
                 value={password}
                 onChangeText={setPassword}
                 autoCapitalize="none"
               />
-              <Pressable onPress={() => setShowPassword((prev) => !prev)} hitSlop={10}>
+              <Pressable
+                onPress={() => setShowPassword((prev) => !prev)}
+                hitSlop={10}
+                style={styles.eyeBtn}
+              >
                 <Text style={styles.eyeToggle}>{showPassword ? '🙈' : '👁'}</Text>
               </Pressable>
             </View>
 
+            {/* Forgot password */}
             <View style={styles.forgotRow}>
               <Pressable onPress={handleForgotPassword} hitSlop={8}>
                 <Text style={styles.forgotText}>Lupa password?</Text>
               </Pressable>
             </View>
 
-            {memberAuth.error ? <Text style={styles.errorText}>{memberAuth.error}</Text> : null}
+            {/* Error */}
+            {memberAuth.error ? (
+              <View style={styles.errorBox}>
+                <Text style={styles.errorText}>{memberAuth.error}</Text>
+              </View>
+            ) : null}
 
-            <Pressable onPress={handleMemberLogin} disabled={memberAuth.isLoading}>
+            {/* CTA — Tosca Gradient */}
+            <Pressable
+              onPress={handleMemberLogin}
+              disabled={memberAuth.isLoading}
+              style={({ pressed }) => [{ opacity: pressed ? 0.9 : 1 }]}
+            >
               <LinearGradient
-                colors={[COLORS.bluePrimary, COLORS.teal]}
+                colors={[COLORS.primary, COLORS.secondary]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={[styles.cta, memberAuth.isLoading && styles.ctaDisabled]}
@@ -251,11 +317,27 @@ export default function LoginScreen() {
                 {memberAuth.isLoading ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={styles.ctaText}>Masuk →</Text>
+                  <Text style={styles.ctaText}>Masuk Sebagai Anggota</Text>
                 )}
               </LinearGradient>
             </Pressable>
 
+            {/* Divider */}
+            <View style={styles.dividerRow}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>atau</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            {/* Admin login button */}
+            <Pressable
+              style={styles.adminOutlineBtn}
+              onPress={() => setAdminModalVisible(true)}
+            >
+              <Text style={styles.adminOutlineBtnText}>Masuk Sebagai Admin</Text>
+            </Pressable>
+
+            {/* Footer */}
             <View style={styles.footerRow}>
               <Pressable onPress={handleActivation} hitSlop={8}>
                 <Text style={styles.footerLink}>Aktivasi akun disini sayyy...!! ✨</Text>
@@ -272,8 +354,17 @@ export default function LoginScreen() {
         animationType="fade"
         onRequestClose={() => setAdminModalVisible(false)}
       >
-        <Pressable style={styles.adminOverlay} onPress={() => setAdminModalVisible(false)}>
-          <Pressable style={styles.adminCard} onPress={(e) => e.stopPropagation()}>
+        <Pressable
+          style={styles.adminOverlay}
+          onPress={() => setAdminModalVisible(false)}
+        >
+          <Pressable
+            style={styles.adminCard}
+            onPress={(e) => e.stopPropagation()}
+          >
+            {/* Handle bar */}
+            <View style={styles.modalHandle} />
+
             <View style={styles.adminCardHead}>
               <View style={styles.adminCardTitleRow}>
                 <View style={styles.adminIco}>
@@ -289,28 +380,40 @@ export default function LoginScreen() {
                 <Text style={styles.adminCloseText}>✕</Text>
               </Pressable>
             </View>
+
             <Text style={styles.adminCardSub}>
               Khusus pengurus dengan hak admin. Masukkan kode akses untuk membuka dashboard.
             </Text>
+
             <View style={styles.adminField}>
               <TextInput
                 style={styles.adminInput}
                 placeholder="Kode akses admin"
-                placeholderTextColor="#B7BFD1"
+                placeholderTextColor={COLORS.inkMuted}
                 secureTextEntry
                 value={adminCode}
                 onChangeText={setAdminCode}
                 autoCapitalize="none"
               />
             </View>
-            <Pressable onPress={handleAdminLogin} disabled={adminAuth.isLoading}>
-              <View style={[styles.adminCta, adminAuth.isLoading && styles.ctaDisabled]}>
+
+            <Pressable
+              onPress={handleAdminLogin}
+              disabled={adminAuth.isLoading}
+              style={({ pressed }) => [{ opacity: pressed ? 0.9 : 1 }]}
+            >
+              <LinearGradient
+                colors={[COLORS.primary, COLORS.secondary]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={[styles.adminCta, adminAuth.isLoading && styles.ctaDisabled]}
+              >
                 {adminAuth.isLoading ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
                   <Text style={styles.adminCtaText}>Masuk Dashboard Admin →</Text>
                 )}
-              </View>
+              </LinearGradient>
             </Pressable>
           </Pressable>
         </Pressable>
@@ -320,40 +423,86 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.surface },
-  flex: { flex: 1 },
+  root: {
+    flex: 1,
+    backgroundColor: COLORS.surface,
+  },
+  flex: {
+    flex: 1,
+  },
   fontLoadingContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: COLORS.surface,
   },
-  scrollContent: { flexGrow: 1 },
-
-  hero: {
-    paddingHorizontal: 18,
-    paddingBottom: 20,
-    justifyContent: 'space-between',
+  scrollContent: {
+    flexGrow: 1,
   },
+
+  // ================= HERO =================
+  hero: {
+    paddingHorizontal: 20,
+    paddingBottom: 28,
+    justifyContent: 'space-between',
+    minHeight: 280,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  heroCircle1: {
+    position: 'absolute',
+    top: -60,
+    right: -40,
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  heroCircle2: {
+    position: 'absolute',
+    bottom: -30,
+    left: -20,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+
   adminTrigger: {
     position: 'absolute',
     top: 16,
     right: 16,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.14)',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.15)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
+    borderColor: 'rgba(255,255,255,0.25)',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 20,
   },
-  adminTriggerIcon: { color: 'rgba(255,255,255,0.85)', fontSize: 13 },
+  adminTriggerIcon: {
+    color: 'rgba(255,255,255,0.9)',
+    fontSize: 14,
+  },
 
-  brandBlock: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 8 },
-  brandMark: { width: 96, height: 96 },
-  brandCopy: { flex: 1, gap: 2 },
+  brandBlock: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    marginTop: 8,
+  },
+  brandMark: {
+    width: 80,
+    height: 80,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+  },
+  brandCopy: {
+    flex: 1,
+    gap: 2,
+  },
   brandWordmarkSmall: {
     color: 'rgba(255,255,255,0.75)',
     fontSize: 12,
@@ -361,62 +510,82 @@ const styles = StyleSheet.create({
   },
   brandWordmarkBig: {
     color: '#fff',
-    fontSize: 20,
+    fontSize: 22,
     fontFamily: 'SpaceGrotesk_700Bold',
+    letterSpacing: -0.5,
   },
 
-  quoteRow: { flexDirection: 'row', gap: 6, alignItems: 'flex-start', marginTop: 14 },
-  quoteMark: { fontSize: 18, color: '#FFE27A', fontFamily: 'SpaceGrotesk_700Bold' },
+  quoteRow: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'flex-start',
+    marginTop: 18,
+    marginBottom: 8,
+  },
+  quoteMark: {
+    fontSize: 18,
+    color: '#FFE27A',
+    fontFamily: 'SpaceGrotesk_700Bold',
+  },
   quoteText: {
     flex: 1,
     fontFamily: 'Caveat_700Bold',
     fontSize: 20,
-    color: 'rgba(255,255,255,0.98)',
-    lineHeight: 24,
+    color: 'rgba(255,255,255,0.95)',
+    lineHeight: 26,
   },
 
+  // ================= SHEET =================
   sheet: {
     marginTop: -24,
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 26,
-    borderTopRightRadius: 26,
+    backgroundColor: COLORS.surfaceElevated,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: 32,
+    paddingTop: 20,
+    paddingBottom: 36,
     flex: 1,
+    ...SHADOWS.card,
   },
   grabber: {
-    width: 36,
+    width: 40,
     height: 4,
     backgroundColor: COLORS.line,
     borderRadius: 10,
     alignSelf: 'center',
-    marginBottom: 18,
+    marginBottom: 20,
   },
   sheetTitle: {
     fontFamily: 'SpaceGrotesk_700Bold',
-    fontSize: 19,
+    fontSize: 20,
     color: COLORS.ink,
-    marginBottom: 16,
+    marginBottom: 4,
+  },
+  sheetSubtitle: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 13,
+    color: COLORS.inkSoft,
+    marginBottom: 20,
   },
 
+  // ================= FIELDS =================
   fieldLabel: {
-    fontSize: 11.5,
+    fontSize: 12,
     fontFamily: 'Inter_600SemiBold',
     color: COLORS.ink,
-    marginBottom: 7,
+    marginBottom: 8,
   },
   fieldBox: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    borderWidth: 1.6,
+    borderWidth: 1.5,
     borderColor: COLORS.line,
-    borderRadius: 16,
+    borderRadius: 14,
     paddingHorizontal: 14,
     paddingVertical: 13,
-    backgroundColor: '#FBFCFF',
-    marginBottom: 14,
+    backgroundColor: '#FAFBFC',
+    marginBottom: 16,
   },
   cc: {
     flexDirection: 'row',
@@ -426,57 +595,136 @@ const styles = StyleSheet.create({
     borderRightWidth: 1.5,
     borderRightColor: COLORS.line,
   },
-  ccText: { fontFamily: 'Inter_600SemiBold', fontSize: 14, color: COLORS.ink },
-  flag: { fontSize: 15 },
+  ccText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 14,
+    color: COLORS.ink,
+  },
+  flag: {
+    fontSize: 15,
+  },
   input: {
     flex: 1,
-    fontSize: 14.5,
+    fontSize: 15,
     fontFamily: 'Inter_500Medium',
     color: COLORS.ink,
     padding: 0,
   },
-  eyeToggle: { fontSize: 15 },
+  eyeBtn: {
+    padding: 4,
+  },
+  eyeToggle: {
+    fontSize: 16,
+  },
 
-  forgotRow: { alignItems: 'flex-end', marginTop: -6, marginBottom: 18 },
-  forgotText: { fontSize: 11.5, color: COLORS.bluePrimary, fontFamily: 'Inter_600SemiBold' },
+  // ================= ACTIONS =================
+  forgotRow: {
+    alignItems: 'flex-end',
+    marginTop: -8,
+    marginBottom: 20,
+  },
+  forgotText: {
+    fontSize: 12,
+    color: COLORS.primary,
+    fontFamily: 'Inter_600SemiBold',
+  },
 
+  errorBox: {
+    backgroundColor: COLORS.danger + '12',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 16,
+  },
   errorText: {
-    color: '#D92D20',
-    fontSize: 12.5,
+    color: COLORS.danger,
+    fontSize: 13,
     fontFamily: 'Inter_500Medium',
-    marginBottom: 14,
     textAlign: 'center',
   },
 
   cta: {
-    borderRadius: 100,
-    paddingVertical: 15,
+    borderRadius: 14,
+    paddingVertical: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: COLORS.bluePrimary,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.35,
-    shadowRadius: 16,
-    elevation: 6,
+    ...SHADOWS.cta,
   },
-  ctaDisabled: { opacity: 0.7 },
-  ctaText: { fontFamily: 'SpaceGrotesk_700Bold', fontSize: 14.5, color: '#fff' },
+  ctaDisabled: {
+    opacity: 0.6,
+  },
+  ctaText: {
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: 15,
+    color: '#fff',
+  },
 
-  footerRow: { alignItems: 'center', marginTop: 22 },
-  footerLink: { fontSize: 13, fontFamily: 'Inter_700Bold', color: COLORS.bluePrimary },
+  // Divider
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginVertical: 20,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: COLORS.line,
+  },
+  dividerText: {
+    fontSize: 12,
+    color: COLORS.inkMuted,
+    fontFamily: 'Inter_500Medium',
+  },
 
+  // Admin outline button
+  adminOutlineBtn: {
+    borderWidth: 1.5,
+    borderColor: COLORS.primary,
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  adminOutlineBtnText: {
+    fontFamily: 'SpaceGrotesk_600SemiBold',
+    fontSize: 14,
+    color: COLORS.primary,
+  },
+
+  footerRow: {
+    alignItems: 'center',
+    marginTop: 24,
+  },
+  footerLink: {
+    fontSize: 13,
+    fontFamily: 'Inter_700Bold',
+    color: COLORS.primary,
+  },
+
+  // ================= MODAL ADMIN =================
   adminOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(11,30,61,0.55)',
+    backgroundColor: 'rgba(26,26,46,0.55)',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 32,
+    justifyContent: 'flex-end',
   },
   adminCard: {
     width: '100%',
-    backgroundColor: '#fff',
-    borderRadius: 22,
-    padding: 22,
+    backgroundColor: COLORS.surfaceElevated,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 24,
+    paddingTop: 12,
+    paddingBottom: 32,
+    ...SHADOWS.card,
+  },
+  modalHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: COLORS.line,
+    borderRadius: 10,
+    alignSelf: 'center',
+    marginBottom: 16,
   },
   adminCardHead: {
     flexDirection: 'row',
@@ -484,56 +732,77 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 4,
   },
-  adminCardTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  adminCardTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
   adminIco: {
-    width: 22,
-    height: 22,
-    borderRadius: 7,
-    backgroundColor: COLORS.blueDeep,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  adminIcoText: { color: COLORS.gold, fontSize: 11 },
-  adminCardTitle: { fontFamily: 'SpaceGrotesk_700Bold', fontSize: 15.5, color: COLORS.ink },
-  adminClose: {
-    width: 24,
-    height: 24,
+    width: 36,
+    height: 36,
     borderRadius: 12,
-    backgroundColor: '#F1F3F9',
+    backgroundColor: COLORS.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  adminCloseText: { color: '#8891A6', fontSize: 12 },
+  adminIcoText: {
+    color: COLORS.primary,
+    fontSize: 16,
+  },
+  adminCardTitle: {
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: 17,
+    color: COLORS.ink,
+  },
+  adminClose: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: COLORS.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.line,
+  },
+  adminCloseText: {
+    color: COLORS.inkSoft,
+    fontSize: 14,
+    fontFamily: 'Inter_600SemiBold',
+  },
   adminCardSub: {
-    fontSize: 11.5,
+    fontSize: 13,
     color: COLORS.inkSoft,
     fontFamily: 'Inter_400Regular',
-    marginTop: 2,
-    marginBottom: 16,
-    lineHeight: 16,
+    marginTop: 6,
+    marginBottom: 20,
+    lineHeight: 18,
   },
   adminField: {
-    borderWidth: 1.6,
+    borderWidth: 1.5,
     borderColor: COLORS.line,
     borderRadius: 14,
-    paddingHorizontal: 13,
-    paddingVertical: 12,
-    backgroundColor: '#FBFCFF',
-    marginBottom: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    backgroundColor: '#FAFBFC',
+    marginBottom: 20,
   },
   adminInput: {
     fontFamily: 'Inter_600SemiBold',
-    fontSize: 13.5,
+    fontSize: 14,
     letterSpacing: 1.5,
     color: COLORS.ink,
     padding: 0,
   },
   adminCta: {
-    borderRadius: 100,
-    paddingVertical: 13,
+    borderRadius: 14,
+    paddingVertical: 15,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.blueDeep,
+    ...SHADOWS.cta,
   },
-  adminCtaText: { fontFamily: 'SpaceGrotesk_700Bold', fontSize: 13.5, color: '#fff' },
+  adminCtaText: {
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: 14,
+    color: '#fff',
+  },
 });
