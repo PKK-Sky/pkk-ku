@@ -7,6 +7,11 @@ export type RootStackParamList = {
   // Main
   Home: undefined;
 
+  // Admin
+  AdminDashboard: undefined;
+  AdminPosts: undefined;
+  AdminReports: undefined;
+
   // Report
   ReportList: undefined;
   ReportDetail: { reportId: string };
