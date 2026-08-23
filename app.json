@@ -54,7 +54,7 @@
     "updates": {
       "url": "https://u.expo.dev/e45a0574-38c0-4506-9225-947c583045a5",
       "enabled": true,
-      "checkAutomatically": "ON_LOAD"
+      "checkAutomatically": "ON_ERROR_RECOVERY"
     },
     "runtimeVersion": {
       "policy": "sdkVersion"
