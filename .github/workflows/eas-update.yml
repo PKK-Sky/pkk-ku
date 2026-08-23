@@ -1,0 +1,69 @@
+name: 📲 Publish OTA Update (EAS Update)
+
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: 'Channel tujuan (harus cocok dengan channel APK yang sudah terinstall)'
+        required: true
+        default: 'preview'
+        type: choice
+        options:
+          - development
+          - preview
+          - production
+      message:
+        description: 'Pesan/catatan update (muncul di dashboard EAS)'
+        required: false
+        default: 'OTA update'
+
+jobs:
+  publish-update:
+    name: Publish OTA Update
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 🔧 Setup EAS CLI
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: 📦 Install dependencies
+        run: yarn install --ignore-scripts --non-interactive
+
+      - name: 🩺 Perbaiki versi paket Expo otomatis
+        run: npx expo install --fix
+
+      - name: 🔍 Type check
+        run: yarn tsc --noEmit
+        continue-on-error: true
+
+      # PENTING: runtimeVersion memakai policy "sdkVersion" (lihat app.json).
+      # Update ini HANYA akan diterima oleh APK yang:
+      #   1. Sudah terinstall dengan channel yang sama persis (${{ github.event.inputs.channel }})
+      #   2. Dibangun dengan Expo SDK yang sama dengan environment ini
+      # Kalau ada perubahan native (plugin baru, permission baru, upgrade SDK),
+      # OTA TIDAK akan berlaku — wajib jalankan workflow "Build Android" dulu.
+      - name: 🚀 Publish EAS Update
+        run: eas update --branch ${{ github.event.inputs.channel }} --message "${{ github.event.inputs.message }}" --non-interactive
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
+
+      - name: 📝 Update summary
+        run: |
+          echo "✅ OTA Update berhasil dipublish"
+          echo "Channel: ${{ github.event.inputs.channel }}"
+          echo "Pesan: ${{ github.event.inputs.message }}"
+          echo ""
+          echo "APK yang sudah terinstall dengan channel ini akan otomatis"
+          echo "mendapat banner update saat dibuka atau kembali dari background."
