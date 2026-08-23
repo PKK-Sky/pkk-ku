@@ -26,7 +26,6 @@ import {
   Inter_700Bold,
 } from '@expo-google-fonts/inter';
 import { useAuth } from '@hooks';
-import { formatPhoneDisplay } from '@utils/phone';
 
 const COLORS = {
   bluePrimary: '#1D63ED',
@@ -62,7 +61,9 @@ const QUOTES = [
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
-  const { login, loginWithPhone, isLoading, error } = useAuth();
+  // Dua instance terpisah supaya loading/error form anggota tidak bercampur dengan modal admin
+  const memberAuth = useAuth();
+  const adminAuth = useAuth();
 
   const [fontsLoaded] = useFonts({
     SpaceGrotesk_600SemiBold,
@@ -107,23 +108,23 @@ export default function LoginScreen() {
   }, [quoteOpacity]);
 
   const handleMemberLogin = useCallback(async () => {
-    if (isLoading) return;
-    const result = await loginWithPhone(phone, password);
+    if (memberAuth.isLoading) return;
+    const result = await memberAuth.loginWithPhone(phone, password);
     if (!result.success) {
       Alert.alert('Login Gagal', result.error ?? 'Terjadi kesalahan. Silakan coba lagi.');
     }
-  }, [isLoading, loginWithPhone, phone, password]);
+  }, [memberAuth, phone, password]);
 
   const handleAdminLogin = useCallback(async () => {
-    if (isLoading) return;
-    const result = await login(adminCode);
+    if (adminAuth.isLoading) return;
+    const result = await adminAuth.login(adminCode);
     if (result.success) {
       setAdminModalVisible(false);
       setAdminCode('');
     } else {
       Alert.alert('Login Admin Gagal', result.error ?? 'Terjadi kesalahan. Silakan coba lagi.');
     }
-  }, [isLoading, login, adminCode]);
+  }, [adminAuth, adminCode]);
 
   const handleForgotPassword = useCallback(() => {
     Alert.alert(
@@ -210,9 +211,9 @@ export default function LoginScreen() {
                 placeholder="812-3456-7890"
                 placeholderTextColor="#B7BFD1"
                 keyboardType="phone-pad"
-                value={formatPhoneDisplay(phone)}
-                onChangeText={(text) => setPhone(text)}
-                maxLength={16}
+                value={phone}
+                onChangeText={setPhone}
+                maxLength={15}
               />
             </View>
 
@@ -238,16 +239,16 @@ export default function LoginScreen() {
               </Pressable>
             </View>
 
-            {error ? <Text style={styles.errorText}>{error}</Text> : null}
+            {memberAuth.error ? <Text style={styles.errorText}>{memberAuth.error}</Text> : null}
 
-            <Pressable onPress={handleMemberLogin} disabled={isLoading}>
+            <Pressable onPress={handleMemberLogin} disabled={memberAuth.isLoading}>
               <LinearGradient
                 colors={[COLORS.bluePrimary, COLORS.teal]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
-                style={[styles.cta, isLoading && styles.ctaDisabled]}
+                style={[styles.cta, memberAuth.isLoading && styles.ctaDisabled]}
               >
-                {isLoading ? (
+                {memberAuth.isLoading ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
                   <Text style={styles.ctaText}>Masuk →</Text>
@@ -302,9 +303,9 @@ export default function LoginScreen() {
                 autoCapitalize="none"
               />
             </View>
-            <Pressable onPress={handleAdminLogin} disabled={isLoading}>
-              <View style={[styles.adminCta, isLoading && styles.ctaDisabled]}>
-                {isLoading ? (
+            <Pressable onPress={handleAdminLogin} disabled={adminAuth.isLoading}>
+              <View style={[styles.adminCta, adminAuth.isLoading && styles.ctaDisabled]}>
+                {adminAuth.isLoading ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
                   <Text style={styles.adminCtaText}>Masuk Dashboard Admin →</Text>
