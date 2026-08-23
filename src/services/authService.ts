@@ -105,10 +105,20 @@ export async function checkReportEligibility(): Promise<AuthCheckResult> {
 }
 
 /**
- * Login dengan email dan password
+ * Login dengan email dan password (khusus admin — lihat useAuth.login)
  */
 export async function signInWithEmail(email: string, password: string) {
   return supabase.auth.signInWithPassword({ email, password });
+}
+
+/**
+ * Login anggota dengan Nomor HP + Password.
+ * Nomor HP wajib sudah dalam format E.164 (+62...) — gunakan normalizePhoneToE164
+ * dari '@utils/phone' sebelum memanggil ini.
+ * Akun anggota terbentuk lewat alur aktivasi (OTP + set password), bukan didaftar di sini.
+ */
+export async function signInWithPhone(phoneE164: string, password: string) {
+  return supabase.auth.signInWithPassword({ phone: phoneE164, password });
 }
 
 /**
