@@ -47,8 +47,12 @@
     "uuid": "^10.0.0",
     "zustand": "^4.5.5",
     "expo-linear-gradient": "~13.0.2",
+    "expo-font": "~12.0.10",
     "@expo-google-fonts/baloo-2": "^0.4.2",
-    "@expo-google-fonts/plus-jakarta-sans": "^0.4.2"
+    "@expo-google-fonts/plus-jakarta-sans": "^0.4.2",
+    "@expo-google-fonts/space-grotesk": "^0.4.0",
+    "@expo-google-fonts/caveat": "^0.4.0",
+    "@expo-google-fonts/inter": "^0.4.0"
   },
   "devDependencies": {
     "@babel/core": "^7.24.0",
