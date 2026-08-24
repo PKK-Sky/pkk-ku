@@ -1,4 +1,5 @@
 export { default as LoginScreen } from './LoginScreen';
+export { default as MemberActivationScreen } from './MemberActivationScreen';
 export { default as HomeScreen } from './HomeScreen';
 export { default as ReportListScreen } from './ReportListScreen';
 export { default as ReportDetailScreen } from './ReportDetailScreen';
