@@ -71,12 +71,10 @@ Admin menerima notifikasi laporan baru (`report_recipients` recipient_type = adm
 ## 3. Daftar Fitur Lengkap — ANGGOTA PKK
 
 ### 3.1 Aktivasi Akun Mandiri (OTP)
-`🚧 BELUM ADA SAMA SEKALI DI FE` — **PRIORITAS TERTINGGI**, blocker untuk semua fitur anggota lain (tanpa ini, tidak ada anggota yang bisa mulai pakai app sama sekali — akun mereka selamanya `pending`).
-Backend siap penuh: RPC `check_member_by_phone(p_phone)` (cek nomor terdaftar, rate limit 5x/15 menit), Supabase Auth Phone OTP (`signInWithOtp`/`verifyOtp`), RPC `complete_member_registration(p_phone, p_address?, p_avatar_url?)` (mengunci `registration_status = 'active'` + membuat row `profiles`).
-**Arahan implementasi** — 3 langkah, sebaiknya 1 alur berurutan (bisa 1 layar multi-step atau 3 layar terpisah):
-1. Input nomor HP → panggil `check_member_by_phone` → kalau `found && !already_registered && !blocked`, tampilkan nama/jabatan untuk konfirmasi, lanjut ke OTP.
-2. Kirim OTP via `supabase.auth.signInWithOtp({ phone })`, verifikasi via `supabase.auth.verifyOtp({ phone, token, type: 'sms' })` → dapat session.
-3. Form lengkapi alamat + avatar (upload dulu ke storage kalau ada foto) → panggil RPC `complete_member_registration` → lalu **set password** via `supabase.auth.updateUser({ password })` (OTP login tidak otomatis mengisi password, ini step terpisah supaya anggota bisa login pakai HP+password selanjutnya, bukan OTP terus-menerus).
+`✅ SELESAI` (kecuali upload foto profil — lihat catatan)
+Alur 4 langkah di `MemberActivationScreen.tsx`, dipicu dari tautan "Aktivasi akun" di `LoginScreen`: (1) cek nomor HP via RPC `check_member_by_phone`, (2) kirim & verifikasi OTP via Supabase Auth Phone, (3) lengkapi alamat + RPC `complete_member_registration`, (4) set password via `supabase.auth.updateUser`.
+**Penanganan khusus:** begitu OTP terverifikasi, Supabase langsung membuat session aktif dan `AppNavigator` akan mengganti seluruh stack navigasi. Ini ditangani lewat state `needsActivation` di `AuthContext` (true kalau user login tapi `members.user_id` belum terhubung) — `AppNavigator` memaksa tetap di `MemberActivationScreen` (lanjut ke step lengkapi profil) sampai aktivasi benar-benar selesai, tidak akan "bocor" ke Home dengan akun setengah jadi.
+⚠️ **Upload foto profil (`avatar_url`) sengaja belum diimplementasikan** — `docs/supabase/peta-storage.md` menyatakan belum ada bucket storage yang dikonfirmasi untuk avatar (perlu klarifikasi ke pemilik backend dulu). Saat ini `p_avatar_url` selalu dikirim `null`; anggota bisa lengkapi foto profil menyusul lewat fitur terpisah begitu bucket-nya jelas.
 
 ### 3.2 Login (Nomor HP + Password)
 `✅ SELESAI` (mekanismenya ada; secara praktik tidak berguna sampai §3.1 selesai karena belum ada anggota yang bisa sampai ke tahap set password)
