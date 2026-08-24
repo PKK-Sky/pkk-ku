@@ -117,7 +117,7 @@ export function AuthProvider({
         return null;
       }
 
-      let resolvedRole: ProfileRole = 'user';
+      let resolvedRole: ProfileRole | null = null;
 
       if (error) {
         console.error(
@@ -126,6 +126,10 @@ export function AuthProvider({
         );
       } else if (data?.role) {
         resolvedRole = data.role as ProfileRole;
+      } else {
+        console.error(
+          '[AuthContext] Profile ditemukan tetapi role kosong.'
+        );
       }
 
       setRole(resolvedRole);
