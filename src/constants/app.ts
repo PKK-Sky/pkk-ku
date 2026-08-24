@@ -1,57 +1,85 @@
-name: 🚀 Build Android (Manual)
+// WAJIB sinkron dengan CHECK constraint database
+// Lihat FULL-SCHEMA.md untuk constraint asli
 
-on:
-  workflow_dispatch:
-    inputs:
-      profile:
-        description: 'Build Profile'
-        required: true
-        default: 'development'
-        type: choice
-        options:
-          - development
-          - preview
-          - production
-      notes:
-        description: 'Catatan build (opsional)'
-        required: false
-        default: 'Build manual dari GitHub Actions'
+export const REPORT_CONFIG = {
+  activity_basis: { max: 150, label: 'Dasar Kegiatan' },
+  activity_place: { max: 100, label: 'Tempat' },
+  activity_name: { max: 150, label: 'Nama Kegiatan' },
+  participants: { max: 250, label: 'Peserta' },
+  activity_description: { max: 800, label: 'Deskripsi Kegiatan' },
+  max_media: 2,
+} as const;
 
-jobs:
-  build-android:
-    name: Build Android APK/AAB
-    runs-on: ubuntu-latest
+export const POST_CONFIG = {
+  max_content_length: 2000,
+  max_media: 10, // tidak ada batas atas di DB, tapi FE batasi
+  max_duration_hours: 48,
+} as const;
 
-    steps:
-      - name: 📥 Checkout repository
-        uses: actions/checkout@v4
+export const CHAT_CONFIG = {
+  max_body_length: 4000,
+  max_attachment_size: 10 * 1024 * 1024, // 10 MB
+  allowed_mime_types: [
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+    'application/pdf',
+    'video/mp4',
+    'audio/mpeg',
+    'audio/ogg',
+    'audio/webm',
+  ] as const,
+} as const;
 
-      - name: ⚙️ Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
+export const ANNOUNCEMENT_CONFIG = {
+  max_active: 3,
+  max_display_duration: 180,
+  min_display_duration: 1,
+} as const;
 
-      - name: 🔧 Setup EAS CLI
-        uses: expo/expo-github-action@v8
-        with:
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
+export const STORAGE_CONFIG = {
+  MAX_FILE_SIZE_MB: 10,
+  REPORT_MEDIA_PATH: (userId: string, reportId: string, order: number) =>
+    `${userId}/reports/${reportId}/${order}.jpg`,
+  POST_MEDIA_PATH: (userId: string, postId: string, filename: string) =>
+    `${userId}/posts/${postId}/${filename}`,
+  CHAT_MEDIA_PATH: (userId: string, conversationId: string, filename: string) =>
+    `${userId}/chat/${conversationId}/${filename}`,
+} as const;
 
-      - name: 📦 Install dependencies
-        run: yarn install --ignore-scripts --non-interactive
+export const ELIGIBLE_POSITIONS = [
+  'Bendahara',
+  'Sekretaris',
+  'Pokja I',
+  'Pokja II',
+  'Pokja III',
+  'Pokja IV',
+] as const;
 
-      - name: 🩺 Perbaiki versi paket Expo otomatis
-        run: npx expo install --fix
+export const POSITION_CODES = {
+  KETUA: 'KETUA',
+  WAKIL_KETUA: 'WAKIL_KETUA',
+  SEKRETARIS: 'SEKRETARIS',
+  BENDAHARA: 'BENDAHARA',
+  POKJA_I: 'POKJA_I',
+  POKJA_II: 'POKJA_II',
+  POKJA_III: 'POKJA_III',
+  POKJA_IV: 'POKJA_IV',
+} as const;
 
-      - name: 🔍 Type check
-        run: yarn tsc --noEmit
-        continue-on-error: true
-
-      - name: 🏗️ Build Android
-        run: eas build --platform android --profile ${{ github.event.inputs.profile }} --non-interactive
-
-      - name: 📝 Build summary
-        run: |
-          echo "✅ Build Android selesai"
-          echo "Profile: ${{ github.event.inputs.profile }}"
-          echo "Catatan: ${{ github.event.inputs.notes }}"
+export const COLORS = {
+  primary: '#00BFA6',
+  primaryDark: '#009E8A',
+  primaryLight: '#E0F7F4',
+  secondary: '#00D9C0',
+  background: '#F5F7FA',
+  white: '#FFFFFF',
+  text: '#1A1A2E',
+  textSecondary: '#6B7280',
+  textMuted: '#9CA3AF',
+  border: '#E5E7EB',
+  danger: '#EF4444',
+  warning: '#F59E0B',
+  success: '#10B981',
+  info: '#3B82F6',
+} as const;
