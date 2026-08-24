@@ -1,7 +1,7 @@
 /**
  * Validasi form laporan
  */
-import { ReportFormData } from '@types';
+import { ReportFormData } from '@types/form';
 import { REPORT_CONFIG } from '@constants';
 
 export interface ValidationError {
