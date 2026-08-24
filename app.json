@@ -2,7 +2,7 @@
   "expo": {
     "name": "My PKK Warakas",
     "slug": "mypkk",
-    "owner": "sky-fly365",
+    "owner": "pkk365",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -48,11 +48,11 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "e45a0574-38c0-4506-9225-947c583045a5"
+        "projectId": "d5f69877-ce19-4cdd-84e5-ea17527b0fbc"
       }
     },
     "updates": {
-      "url": "https://u.expo.dev/e45a0574-38c0-4506-9225-947c583045a5",
+      "url": "https://u.expo.dev/d5f69877-ce19-4cdd-84e5-ea17527b0fbc",
       "enabled": true,
       "checkAutomatically": "ON_ERROR_RECOVERY"
     },
