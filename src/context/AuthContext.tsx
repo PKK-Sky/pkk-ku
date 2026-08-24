@@ -1,4 +1,11 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+  useRef,
+} from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@lib/supabase';
 import { getMemberLinkStatus } from '@services';
@@ -9,21 +16,20 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  /** Role dari tabel profiles (public.profiles.role). Null selama masih dimuat / belum ada profil. */
+
+  /** Role dari public.profiles */
   role: ProfileRole | null;
-  /** True hanya setelah role berhasil dimuat DAN bernilai 'admin'. */
+
+  /** True jika role user adalah admin */
   isAdmin: boolean;
-  /** True setelah proses pengambilan role selesai (berhasil atau gagal). */
+
+  /** True selama role sedang dimuat */
   isRoleLoading: boolean;
-  /**
-   * True kalau user sudah login (biasanya lewat verifikasi OTP) TAPI belum
-   * pernah menyelesaikan alur aktivasi (completeMemberRegistration belum
-   * dipanggil, jadi members.user_id belum terhubung). Dipakai AppNavigator
-   * untuk mengarahkan ke lanjutan layar aktivasi, bukan langsung ke Home.
-   * Selalu false untuk admin.
-   */
+
+  /** True jika user biasa belum menyelesaikan aktivasi anggota */
   needsActivation: boolean;
-  /** True selama status needsActivation masih dicek. */
+
+  /** True selama status aktivasi sedang diperiksa */
   isActivationStatusLoading: boolean;
 }
 
@@ -32,95 +38,341 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   isLoading: true,
   isAuthenticated: false,
+
   role: null,
   isAdmin: false,
   isRoleLoading: true,
+
   needsActivation: false,
   isActivationStatusLoading: true,
 });
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export function AuthProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const [session, setSession] = useState<Session | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [role, setRole] = useState<ProfileRole | null>(null);
-  const [isRoleLoading, setIsRoleLoading] = useState(true);
-  const [needsActivation, setNeedsActivation] = useState(false);
-  const [isActivationStatusLoading, setIsActivationStatusLoading] = useState(true);
 
-  const loadRole = useCallback(async (userId: string | undefined) => {
+  const [isLoading, setIsLoading] = useState(true);
+
+  const [role, setRole] = useState<ProfileRole | null>(null);
+
+  const [isRoleLoading, setIsRoleLoading] = useState(true);
+
+  const [needsActivation, setNeedsActivation] = useState(false);
+
+  const [isActivationStatusLoading, setIsActivationStatusLoading] =
+    useState(false);
+
+  /**
+   * ID request terakhir.
+   *
+   * Berguna untuk mencegah hasil request lama
+   * menimpa state login terbaru.
+   */
+  const roleRequestRef = useRef(0);
+
+  /**
+   * Menandakan session awal sudah diproses.
+   *
+   * Supaya INITIAL_SESSION tidak memanggil
+   * loadRole() dua kali.
+   */
+  const initializedRef = useRef(false);
+
+  /**
+   * Memuat role user dari public.profiles.
+   */
+  const loadRole = useCallback(async (userId?: string) => {
+    const requestId = ++roleRequestRef.current;
+
+    /**
+     * Tidak ada user.
+     */
     if (!userId) {
       setRole(null);
       setIsRoleLoading(false);
-      return;
-    }
-    setIsRoleLoading(true);
-    // profiles_select RLS: id = auth.uid() or is_admin() -> user selalu bisa baca baris miliknya sendiri.
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', userId)
-      .maybeSingle();
 
-    if (error) {
-      console.error('[AuthContext] Gagal memuat role profil:', error.message);
-      setRole(null);
-    } else {
-      // Tidak ada baris profiles untuk user ini (mis. akun anggota tanpa profil admin) -> anggap 'user'.
-      setRole((data?.role as ProfileRole | undefined) ?? 'user');
-    }
-    setIsRoleLoading(false);
-  }, []);
-
-  const loadActivationStatus = useCallback(async (userId: string | undefined, currentRole: ProfileRole | null) => {
-    if (!userId || currentRole === 'admin') {
-      // Admin tidak pernah melalui alur aktivasi anggota.
       setNeedsActivation(false);
       setIsActivationStatusLoading(false);
-      return;
+
+      return null;
     }
-    setIsActivationStatusLoading(true);
-    const { isLinked } = await getMemberLinkStatus(userId);
-    setNeedsActivation(!isLinked);
-    setIsActivationStatusLoading(false);
+
+    setIsRoleLoading(true);
+
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', userId)
+        .maybeSingle();
+
+      /**
+       * Kalau ada request baru setelah request ini,
+       * abaikan hasil request lama.
+       */
+      if (requestId !== roleRequestRef.current) {
+        return null;
+      }
+
+      let resolvedRole: ProfileRole = 'user';
+
+      if (error) {
+        console.error(
+          '[AuthContext] Gagal memuat role profil:',
+          error.message
+        );
+      } else if (data?.role) {
+        resolvedRole = data.role as ProfileRole;
+      }
+
+      setRole(resolvedRole);
+      setIsRoleLoading(false);
+
+      /**
+       * =====================================================
+       * ADMIN
+       * =====================================================
+       *
+       * Admin tidak perlu melalui proses aktivasi anggota.
+       *
+       * Ini penting agar dashboard admin tidak tertahan
+       * oleh getMemberLinkStatus().
+       */
+      if (resolvedRole === 'admin') {
+        setNeedsActivation(false);
+        setIsActivationStatusLoading(false);
+
+        return resolvedRole;
+      }
+
+      /**
+       * =====================================================
+       * USER BIASA
+       * =====================================================
+       *
+       * Hanya user biasa yang perlu dicek status aktivasi.
+       */
+      setIsActivationStatusLoading(true);
+
+      try {
+        const { isLinked } = await getMemberLinkStatus(userId);
+
+        if (requestId !== roleRequestRef.current) {
+          return resolvedRole;
+        }
+
+        setNeedsActivation(!isLinked);
+      } catch (activationError) {
+        console.error(
+          '[AuthContext] Gagal memuat status aktivasi:',
+          activationError
+        );
+
+        /**
+         * Jika pengecekan gagal, jangan membuat
+         * aplikasi terjebak loading selamanya.
+         */
+        if (requestId === roleRequestRef.current) {
+          setNeedsActivation(false);
+        }
+      } finally {
+        if (requestId === roleRequestRef.current) {
+          setIsActivationStatusLoading(false);
+        }
+      }
+
+      return resolvedRole;
+    } catch (error) {
+      console.error(
+        '[AuthContext] Unexpected error ketika memuat role:',
+        error
+      );
+
+      if (requestId === roleRequestRef.current) {
+        setRole(null);
+        setIsRoleLoading(false);
+        setNeedsActivation(false);
+        setIsActivationStatusLoading(false);
+      }
+
+      return null;
+    }
   }, []);
 
+  /**
+   * =====================================================
+   * INITIAL AUTH INITIALIZATION
+   * =====================================================
+   */
   useEffect(() => {
-    // Cek session saat mount
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session);
-      setIsLoading(false);
-      await loadRole(session?.user?.id);
-    });
+    let mounted = true;
 
-    // Subscribe perubahan auth state
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        setSession(session);
+    const initialize = async () => {
+      try {
+        const {
+          data: { session: currentSession },
+          error,
+        } = await supabase.auth.getSession();
+
+        if (!mounted) {
+          return;
+        }
+
+        if (error) {
+          console.error(
+            '[AuthContext] Gagal mendapatkan session:',
+            error.message
+          );
+
+          setSession(null);
+          setRole(null);
+
+          setIsRoleLoading(false);
+          setIsLoading(false);
+
+          setNeedsActivation(false);
+          setIsActivationStatusLoading(false);
+
+          initializedRef.current = true;
+
+          return;
+        }
+
+        /**
+         * Simpan session.
+         */
+        setSession(currentSession);
+
+        /**
+         * Session sudah selesai diperiksa.
+         */
         setIsLoading(false);
-        await loadRole(session?.user?.id);
+
+        /**
+         * Kalau user sudah login,
+         * load role.
+         */
+        if (currentSession?.user?.id) {
+          await loadRole(currentSession.user.id);
+        } else {
+          setRole(null);
+          setIsRoleLoading(false);
+
+          setNeedsActivation(false);
+          setIsActivationStatusLoading(false);
+        }
+
+        initializedRef.current = true;
+      } catch (error) {
+        console.error(
+          '[AuthContext] Error saat initialize:',
+          error
+        );
+
+        if (!mounted) {
+          return;
+        }
+
+        setSession(null);
+        setRole(null);
+
+        setIsLoading(false);
+        setIsRoleLoading(false);
+
+        setNeedsActivation(false);
+        setIsActivationStatusLoading(false);
+
+        initializedRef.current = true;
+      }
+    };
+
+    initialize();
+
+    /**
+     * =====================================================
+     * AUTH STATE LISTENER
+     * =====================================================
+     */
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(
+      (event, nextSession) => {
+        if (!mounted) {
+          return;
+        }
+
+        setSession(nextSession);
+        setIsLoading(false);
+
+        /**
+         * INITIAL_SESSION biasanya sudah ditangani
+         * oleh initialize().
+         *
+         * Jangan loadRole dua kali.
+         */
+        if (
+          event === 'INITIAL_SESSION' &&
+          !initializedRef.current
+        ) {
+          return;
+        }
+
+        /**
+         * User login / token berubah.
+         */
+        if (nextSession?.user?.id) {
+          void loadRole(nextSession.user.id);
+        } else {
+          /**
+           * User logout.
+           *
+           * Naikkan request ID supaya request lama
+           * tidak bisa mengembalikan role lagi.
+           */
+          roleRequestRef.current += 1;
+
+          setRole(null);
+          setIsRoleLoading(false);
+
+          setNeedsActivation(false);
+          setIsActivationStatusLoading(false);
+        }
       }
     );
 
+    /**
+     * Cleanup.
+     */
     return () => {
+      mounted = false;
+
       subscription.unsubscribe();
     };
   }, [loadRole]);
 
-  // Cek status aktivasi setiap kali role selesai dimuat ulang (mis. setelah login/OTP baru).
-  useEffect(() => {
-    if (isRoleLoading) return;
-    loadActivationStatus(session?.user?.id, role);
-  }, [session?.user?.id, role, isRoleLoading, loadActivationStatus]);
-
+  /**
+   * Nilai yang diberikan ke seluruh aplikasi.
+   */
   const value: AuthContextType = {
     session,
+
     user: session?.user ?? null,
+
     isLoading,
+
     isAuthenticated: !!session?.user,
+
     role,
+
     isAdmin: role === 'admin',
+
     isRoleLoading,
+
     needsActivation,
+
     isActivationStatusLoading,
   };
 
@@ -131,10 +383,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
+/**
+ * Hook untuk mengakses AuthContext.
+ */
 export function useAuthContext() {
   const context = useContext(AuthContext);
+
   if (!context) {
-    throw new Error('useAuthContext harus digunakan di dalam AuthProvider');
+    throw new Error(
+      'useAuthContext harus digunakan di dalam AuthProvider'
+    );
   }
+
   return context;
 }
