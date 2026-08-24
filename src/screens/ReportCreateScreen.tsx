@@ -14,7 +14,7 @@ import type { RootStackParamList } from '@types';
 import type { ReportFormData } from '../types/form';
 import { useEligibility, useImagePicker, useReportSubmission } from '@hooks';
 import { validateReportForm, getCurrentDate, getCurrentTime } from '@utils';
-import { STORAGE_CONFIG } from '@constants';
+import { STORAGE_CONFIG } from '@constants/storage';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
