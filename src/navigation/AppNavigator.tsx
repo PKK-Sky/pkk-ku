@@ -8,8 +8,6 @@ import type { RootStackParamList } from '@types';
 import LoginScreen from '@screens/LoginScreen';
 import HomeScreen from '@screens/HomeScreen';
 import AdminDashboardScreen from '@screens/AdminDashboardScreen';
-import AdminPostsScreen from '@screens/AdminPostsScreen';
-import AdminReportsScreen from '@screens/AdminReportsScreen';
 import ReportListScreen from '@screens/ReportListScreen';
 import ReportDetailScreen from '@screens/ReportDetailScreen';
 import ReportCreateScreen from '@screens/ReportCreateScreen';
@@ -22,9 +20,8 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 export default function AppNavigator() {
   const { isAuthenticated, isLoading, isAdmin, isRoleLoading } = useAuthContext();
 
-  // Tunggu session DAN role selesai dimuat sebelum memutuskan stack mana yang
-  // ditampilkan — supaya admin tidak sempat "kelihatan" masuk ke Home anggota
-  // sesaat sebelum role-nya diketahui (dan sebaliknya).
+  // Tunggu session DAN role selesai dimuat — supaya tidak sempat render Home
+  // untuk admin (atau sebaliknya) sebelum role diketahui pasti.
   if (isLoading || (isAuthenticated && isRoleLoading)) {
     // Bisa diganti dengan splash screen
     return null;
@@ -41,14 +38,7 @@ export default function AppNavigator() {
         {!isAuthenticated ? (
           <Stack.Screen name="Login" component={LoginScreen} />
         ) : isAdmin ? (
-          <>
-            <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
-            <Stack.Screen name="AdminPosts" component={AdminPostsScreen} />
-            <Stack.Screen name="AdminReports" component={AdminReportsScreen} />
-            <Stack.Screen name="ReportDetail" component={ReportDetailScreen} />
-            <Stack.Screen name="ReportPdfViewer" component={ReportPdfViewerScreen} />
-            <Stack.Screen name="AccessDenied" component={AccessDeniedScreen} />
-          </>
+          <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
         ) : (
           <>
             <Stack.Screen name="Home" component={HomeScreen} />
