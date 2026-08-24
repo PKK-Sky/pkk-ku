@@ -1,27 +1,57 @@
-/**
- * Konfigurasi aplikasi
- */
-/**
- * Email akun admin di Supabase Auth. Modal "Akses Admin" hanya meminta kode/password
- * (bukan email) — email tetap ini di belakang layar karena akun admin cuma satu.
- */
-export const ADMIN_EMAIL = 'admin@pkk.com';
+name: 🚀 Build Android (Manual)
 
-export const APP_CONFIG = {
-  NAME: 'PKK Laporan Kegiatan',
-  VERSION: '1.0.0',
-  ORGANIZATION: 'TP PKK Kelurahan Warakas',
-  TIMEZONE: 'Asia/Jakarta',
-  LOCALE: 'id-ID',
-  DATE_FORMAT: 'DD MMMM YYYY',
-  TIME_FORMAT: 'HH:mm',
-  CURRENCY_FORMAT: 'id-ID',
-} as const;
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: 'Build Profile'
+        required: true
+        default: 'development'
+        type: choice
+        options:
+          - development
+          - preview
+          - production
+      notes:
+        description: 'Catatan build (opsional)'
+        required: false
+        default: 'Build manual dari GitHub Actions'
 
-export const REPORT_CONFIG = {
-  MAX_DESCRIPTION_LENGTH: 5000,
-  MAX_PARTICIPANTS_LENGTH: 1000,
-  MAX_ACTIVITY_NAME_LENGTH: 200,
-  MAX_PLACE_LENGTH: 200,
-  MAX_BASIS_LENGTH: 500,
-} as const;
+jobs:
+  build-android:
+    name: Build Android APK/AAB
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 🔧 Setup EAS CLI
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: 📦 Install dependencies
+        run: yarn install --ignore-scripts --non-interactive
+
+      - name: 🩺 Perbaiki versi paket Expo otomatis
+        run: npx expo install --fix
+
+      - name: 🔍 Type check
+        run: yarn tsc --noEmit
+        continue-on-error: true
+
+      - name: 🏗️ Build Android
+        run: eas build --platform android --profile ${{ github.event.inputs.profile }} --non-interactive
+
+      - name: 📝 Build summary
+        run: |
+          echo "✅ Build Android selesai"
+          echo "Profile: ${{ github.event.inputs.profile }}"
+          echo "Catatan: ${{ github.event.inputs.notes }}"
