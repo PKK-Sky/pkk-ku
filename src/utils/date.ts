@@ -70,3 +70,31 @@ export function toWIBTime(date: Date = new Date()): string {
     timeZone: TIMEZONE,
   });
 }
+
+/**
+ * Format waktu relatif gaya feed sosial ("baru saja", "5 menit lalu", "2 jam lalu", "3 hari lalu").
+ * Untuk yang lebih dari 7 hari, kembali ke tanggal singkat.
+ */
+export function formatTimeAgo(isoString: string): string {
+  const date = new Date(isoString);
+  const diffMs = Date.now() - date.getTime();
+  const diffSec = Math.floor(diffMs / 1000);
+
+  if (diffSec < 60) return 'baru saja';
+
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin} menit lalu`;
+
+  const diffHour = Math.floor(diffMin / 60);
+  if (diffHour < 24) return `${diffHour} jam lalu`;
+
+  const diffDay = Math.floor(diffHour / 24);
+  if (diffDay < 7) return `${diffDay} hari lalu`;
+
+  return date.toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: TIMEZONE,
+  });
+}
