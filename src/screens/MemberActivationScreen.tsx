@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  KeyboardAvoidingView, Platform, ScrollView, Alert, Image,
+  KeyboardAvoidingView, Platform, ScrollView, Alert,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types';
@@ -71,7 +71,7 @@ export default function MemberActivationScreen({ navigation }: Props) {
     }
     setLoading(true);
     try {
-      const { data, error } = await supabase.auth.verifyOtp({
+      const { error } = await supabase.auth.verifyOtp({
         phone,
         token: otp,
         type: 'sms',
@@ -89,7 +89,7 @@ export default function MemberActivationScreen({ navigation }: Props) {
   const handleComplete = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.rpc('complete_member_registration', {
+      const { error } = await supabase.rpc('complete_member_registration', {
         p_phone: phone,
         p_address: address || null,
         p_avatar_url: null,
