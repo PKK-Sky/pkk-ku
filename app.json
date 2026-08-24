@@ -48,6 +48,7 @@
     ],
     "extra": {
       "supabaseUrl": "https://vmbqsogwiaqwqmjpobge.supabase.co",
+      "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZtYnFzb2d3aWFxd3FtanBvYmdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxNTA1MTUsImV4cCI6MjEwMjcyNjUxNX0.Jz6t94d3BcLniEtViC9NbwA5v7yEM97SOqsNoXvXxY8",
       "eas": {
         "projectId": "d5f69877-ce19-4cdd-84e5-ea17527b0fbc"
       }

@@ -72,7 +72,6 @@ export default function AdminDashboardScreen({ navigation }: Props) {
       });
     } catch (err) {
       console.error('fetchStats error', err);
-    } finally {
     }
   };
 
