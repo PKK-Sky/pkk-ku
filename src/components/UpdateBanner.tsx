@@ -36,6 +36,7 @@ export default function UpdateBanner() {
     } else {
       Animated.timing(translateY, { toValue: -120, duration: 200, useNativeDriver: true }).start();
     }
+    return undefined;
   }, [isReady, translateY, pulse]);
 
   // Tidak render sama sekali kalau bukan status ready (hemat, tidak ganggu layout)

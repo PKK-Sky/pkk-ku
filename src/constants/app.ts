@@ -10,6 +10,8 @@ export const REPORT_CONFIG = {
   max_media: 2,
 } as const;
 
+export const ADMIN_EMAIL = 'admin@pkkwarakas.id';
+
 export const POST_CONFIG = {
   max_content_length: 2000,
   max_media: 10, // tidak ada batas atas di DB, tapi FE batasi

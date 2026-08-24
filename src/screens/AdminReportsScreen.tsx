@@ -51,21 +51,6 @@ export default function AdminReportsScreen({ navigation }: Props) {
     setRefreshing(false);
   }, []);
 
-  const handleDelete = async (reportId: string) => {
-    Alert.alert('Konfirmasi', 'Hapus laporan ini?', [
-      { text: 'Batal', style: 'cancel' },
-      {
-        text: 'Hapus',
-        style: 'destructive',
-        onPress: async () => {
-          const { error } = await supabase.from('reports').delete().eq('id', reportId);
-          if (error) Alert.alert('Error', error.message);
-          else fetchReports();
-        },
-      },
-    ]);
-  };
-
   const filteredReports = reports.filter(r => {
     if (activeTab === 'all') return true;
     if (activeTab === 'incoming') return !r.adminRead;

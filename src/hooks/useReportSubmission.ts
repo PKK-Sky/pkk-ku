@@ -10,7 +10,7 @@ import type {
   ReportMediaInsertPayload,
   ReportWithDetails,
 } from '@types';
-import type { CroppedImage, SubmissionProgress } from '@types/form';
+import type { CroppedImage, SubmissionProgress } from '../types/form';
 import { saveSubmissionState, clearSubmissionState } from '@utils';
 
 export function useReportSubmission(userId: string) {

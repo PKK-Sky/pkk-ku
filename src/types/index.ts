@@ -31,7 +31,7 @@ export type RootStackParamList = {
 
   // Report Stack
   ReportList: undefined;
-  ReportCreate: { reportId?: string };
+  ReportCreate: { reportId?: string } | undefined;
   ReportDetail: { reportId: string };
   ReportPreview: { reportId: string };
   ReportPdfViewer: { reportId: string };
@@ -166,6 +166,7 @@ export interface Report {
   updated_at: string;
   media?: ReportMedia[];
   recipients?: ReportRecipient[];
+  adminRead?: boolean;
 }
 
 export interface ReportMedia {

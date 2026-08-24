@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  RefreshControl, Alert, Image,
+  RefreshControl, Alert,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList, Post } from '../types';
@@ -22,7 +22,7 @@ export default function AdminPostsScreen({ navigation }: Props) {
         .select('*, media:post_media(*), user:auth.users!posts_user_id_fkey(raw_user_meta_data)')
         .order('created_at', { ascending: false });
       if (error) throw error;
-      setPosts(data || []);
+      setPosts((data || []) as unknown as Post[]);
     } catch (err) {
       console.error(err);
     }
@@ -53,7 +53,7 @@ export default function AdminPostsScreen({ navigation }: Props) {
     ]);
   };
 
-  const filteredPosts = posts.filter(p => {
+  const filteredPosts = posts.filter(() => {
     if (activeTab === 'all') return true;
     if (activeTab === 'deleted') return false; // Soft delete tidak ada di schema
     return true;

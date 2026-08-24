@@ -12,11 +12,10 @@ type Props = NativeStackScreenProps<RootStackParamList, 'AdminMembers'>;
 
 export default function AdminMembersScreen({ navigation }: Props) {
   const [members, setMembers] = useState<Member[]>([]);
-  const [positions, setPositions] = useState<Position[]>([]);
+  const [, setPositions] = useState<Position[]>([]);
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState<'all' | 'active' | 'pending' | 'blocked'>('all');
   const [refreshing, setRefreshing] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   const fetchMembers = async () => {
     try {
@@ -28,8 +27,6 @@ export default function AdminMembersScreen({ navigation }: Props) {
       setMembers(data || []);
     } catch (err) {
       console.error(err);
-    } finally {
-      setLoading(false);
     }
   };
 

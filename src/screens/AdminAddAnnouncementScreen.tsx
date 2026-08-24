@@ -4,7 +4,7 @@ import {
   KeyboardAvoidingView, Platform, ScrollView, Alert, Switch,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList, Announcement } from '../types';
+import { RootStackParamList } from '../types';
 import { COLORS, ANNOUNCEMENT_CONFIG } from '../constants/app';
 import { supabase } from '../lib/supabase';
 

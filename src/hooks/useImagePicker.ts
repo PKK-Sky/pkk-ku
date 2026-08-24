@@ -4,7 +4,7 @@
 import { useState, useCallback } from 'react';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
-import type { CroppedImage } from '@types/form';
+import type { CroppedImage } from '../types/form';
 import { STORAGE_CONFIG } from '@constants';
 
 export function useImagePicker() {

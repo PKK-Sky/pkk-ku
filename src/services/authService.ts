@@ -140,7 +140,7 @@ export async function checkMemberByPhone(
   phoneE164: string
 ): Promise<{ data: CheckMemberByPhoneResult | null; error: Error | null }> {
   const { data, error } = await supabase.rpc('check_member_by_phone', { p_phone: phoneE164 });
-  if (error) return { data: null, error };
+  if (error) return { data: null, error: new Error(error.message) };
   return { data: data as CheckMemberByPhoneResult, error: null };
 }
 
@@ -172,7 +172,7 @@ export async function completeMemberRegistration(
     p_address: address ?? null,
     p_avatar_url: avatarUrl ?? null,
   });
-  if (error) return { data: null, error };
+  if (error) return { data: null, error: new Error(error.message) };
   return { data: data as { success: boolean; member_id: string }, error: null };
 }
 

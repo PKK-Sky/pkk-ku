@@ -17,3 +17,7 @@ export const ELIGIBLE_POSITIONS = [
   'Pokja III',
   'Pokja IV',
 ] as const;
+
+export function isEligiblePosition(positionName: string | null | undefined): boolean {
+  return positionName != null && (ELIGIBLE_POSITIONS as readonly string[]).includes(positionName);
+}

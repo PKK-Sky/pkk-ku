@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  RefreshControl, Image, TextInput,
+  RefreshControl,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList, Post, PostComment } from '../types';
+import { RootStackParamList, Post } from '../types';
 import { COLORS } from '../constants/app';
 import { supabase } from '../lib/supabase';
 

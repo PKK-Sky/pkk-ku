@@ -14,7 +14,6 @@ export default function LoginScreen({ navigation }: Props) {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [isAdminMode, setIsAdminMode] = useState(false);
 
   const handleMemberLogin = async () => {
     if (!phone.trim() || !password.trim()) {
@@ -23,7 +22,7 @@ export default function LoginScreen({ navigation }: Props) {
     }
     setLoading(true);
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         phone: phone.trim(),
         password: password.trim(),
       });

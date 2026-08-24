@@ -31,8 +31,8 @@ export default function SplashScreen({ navigation }: Props) {
       <Text style={styles.subtitle}>Keluarga Besar PKK Warakas</Text>
       <View style={styles.dots}>
         <View style={styles.dot} />
-        <View style={[styles.dot, { animationDelay: '0.2s' }]} />
-        <View style={[styles.dot, { animationDelay: '0.4s' }]} />
+        <View style={styles.dot} />
+        <View style={styles.dot} />
       </View>
     </Animated.View>
   );
