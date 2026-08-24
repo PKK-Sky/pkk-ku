@@ -3,11 +3,10 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 export type RootStackParamList = {
   // Auth
   Login: undefined;
+  MemberActivation: undefined;
 
   // Main
   Home: undefined;
-
-  // Admin
   AdminDashboard: undefined;
 
   // Report
