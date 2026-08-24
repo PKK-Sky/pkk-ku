@@ -1,264 +1,213 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
-  View,
-  Text,
-  Pressable,
-  StyleSheet,
-  ScrollView,
-  RefreshControl,
-  ActivityIndicator,
-  Alert,
-  Image,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  RefreshControl, Alert, Image,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useFonts } from 'expo-font';
-import { SpaceGrotesk_600SemiBold, SpaceGrotesk_700Bold } from '@expo-google-fonts/space-grotesk';
-import {
-  Inter_400Regular,
-  Inter_500Medium,
-  Inter_600SemiBold,
-  Inter_700Bold,
-} from '@expo-google-fonts/inter';
-import Constants from 'expo-constants';
-import { getAllPostsForAdmin, deletePostAdmin } from '@services';
-import type { PostWithDetails, RootStackParamList } from '@types';
-import { formatDateTime } from '@utils';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { RootStackParamList, Post } from '../types';
+import { COLORS } from '../constants/app';
+import { supabase } from '../lib/supabase';
 
-type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+type Props = NativeStackScreenProps<RootStackParamList, 'AdminPosts'>;
 
-const COLORS = {
-  bluePrimary: '#1D63ED',
-  blueDeep: '#0B1E3D',
-  teal: '#22D3B5',
-  surface: '#F7F9FF',
-  ink: '#10162B',
-  inkSoft: '#5B6478',
-  line: '#E6EAF5',
-  danger: '#D92D20',
-  dangerBg: '#FEF2F1',
-  successBg: '#EAFBF4',
-  success: '#0F9D6B',
-};
+export default function AdminPostsScreen({ navigation }: Props) {
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [activeTab, setActiveTab] = useState<'all' | 'reported' | 'deleted'>('all');
+  const [refreshing, setRefreshing] = useState(false);
 
-const SUPABASE_URL =
-  Constants.expoConfig?.extra?.supabaseUrl ?? process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
-
-/** post_media selalu di bucket post-media (public) — beda dari report-media. */
-function getPostMediaUrl(storagePath: string): string {
-  return `${SUPABASE_URL}/storage/v1/object/public/post-media/${storagePath}`;
-}
-
-export default function AdminPostsScreen() {
-  const insets = useSafeAreaInsets();
-  const navigation = useNavigation<NavigationProp>();
-
-  const [fontsLoaded] = useFonts({
-    SpaceGrotesk_600SemiBold,
-    SpaceGrotesk_700Bold,
-    Inter_400Regular,
-    Inter_500Medium,
-    Inter_600SemiBold,
-    Inter_700Bold,
-  });
-
-  const [posts, setPosts] = useState<PostWithDetails[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [mutatingId, setMutatingId] = useState<string | null>(null);
-
-  const load = useCallback(async () => {
-    const { data, error } = await getAllPostsForAdmin();
-    if (error) {
-      console.error('[AdminPosts] Gagal memuat postingan:', error.message);
+  const fetchPosts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('posts')
+        .select('*, media:post_media(*), user:auth.users!posts_user_id_fkey(raw_user_meta_data)')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setPosts(data || []);
+    } catch (err) {
+      console.error(err);
     }
-    setPosts(data ?? []);
-  }, []);
+  };
 
   useEffect(() => {
-    (async () => {
-      setIsLoading(true);
-      await load();
-      setIsLoading(false);
-    })();
-  }, [load]);
+    fetchPosts();
+  }, []);
 
-  const handleRefresh = useCallback(async () => {
-    setIsRefreshing(true);
-    await load();
-    setIsRefreshing(false);
-  }, [load]);
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchPosts();
+    setRefreshing(false);
+  }, []);
 
-  const handleDelete = useCallback(
-    (post: PostWithDetails) => {
-      Alert.alert('Hapus Postingan', `Hapus postingan dari ${post.author_name ?? 'anggota ini'}?`, [
-        { text: 'Batal', style: 'cancel' },
-        {
-          text: 'Hapus',
-          style: 'destructive',
-          onPress: async () => {
-            setMutatingId(post.id);
-            const { error } = await deletePostAdmin(post.id);
-            setMutatingId(null);
-            if (error) {
-              Alert.alert('Gagal', error.message);
-              return;
-            }
-            load();
-          },
+  const handleDelete = async (postId: string) => {
+    Alert.alert('Konfirmasi', 'Hapus postingan ini?', [
+      { text: 'Batal', style: 'cancel' },
+      {
+        text: 'Hapus',
+        style: 'destructive',
+        onPress: async () => {
+          const { error } = await supabase.from('posts').delete().eq('id', postId);
+          if (error) Alert.alert('Error', error.message);
+          else fetchPosts();
         },
-      ]);
-    },
-    [load]
-  );
+      },
+    ]);
+  };
 
-  if (!fontsLoaded) {
-    return (
-      <View style={styles.fontLoadingContainer}>
-        <ActivityIndicator color={COLORS.bluePrimary} />
-      </View>
-    );
-  }
+  const filteredPosts = posts.filter(p => {
+    if (activeTab === 'all') return true;
+    if (activeTab === 'deleted') return false; // Soft delete tidak ada di schema
+    return true;
+  });
 
-  const now = Date.now();
+  const getInitials = (name: string = '') =>
+    name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 
   return (
-    <View style={styles.root}>
-      <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
-        <Pressable onPress={() => navigation.goBack()} hitSlop={10} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>←</Text>
-        </Pressable>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>Moderasi Postingan</Text>
-          <Text style={styles.headerSub}>{posts.length} postingan (aktif & kadaluarsa)</Text>
-        </View>
+    <View style={styles.container}>
+      <View style={styles.topbar}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.topbarIcon}>
+          <Text style={styles.topbarIconText}>←</Text>
+        </TouchableOpacity>
+        <Text style={styles.topbarTitle}>Kelola Postingan</Text>
+        <View style={{ width: 40 }} />
+      </View>
+
+      <View style={styles.tabs}>
+        {(['all', 'reported', 'deleted'] as const).map(tab => (
+          <TouchableOpacity
+            key={tab}
+            style={[styles.tab, activeTab === tab && styles.tabActive]}
+            onPress={() => setActiveTab(tab)}
+          >
+            <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
+              {tab === 'all' ? 'Semua' : tab === 'reported' ? 'Dilaporkan' : 'Dihapus'}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
       <ScrollView
-        style={styles.flex}
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} tintColor={COLORS.bluePrimary} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        {isLoading ? (
-          <View style={styles.loadingBox}>
-            <ActivityIndicator color={COLORS.bluePrimary} />
-          </View>
-        ) : posts.length === 0 ? (
-          <Text style={styles.emptyText}>
-            Belum ada postingan di feed sosial. Halaman ini akan otomatis terisi begitu anggota mulai memposting.
-          </Text>
-        ) : (
-          posts.map((post) => {
-            const isExpired = new Date(post.expires_at).getTime() <= now;
-            const isMutating = mutatingId === post.id;
-            const sortedMedia = [...post.media].sort((a, b) => a.media_order - b.media_order);
-            return (
-              <View key={post.id} style={styles.card}>
-                <View style={styles.cardTopRow}>
-                  <Text style={styles.cardAuthor}>{post.author_name ?? 'Anggota tidak dikenal'}</Text>
-                  <View style={[styles.statusBadge, { backgroundColor: isExpired ? '#F1F2F6' : COLORS.successBg }]}>
-                    <Text style={[styles.statusBadgeText, { color: isExpired ? COLORS.inkSoft : COLORS.success }]}>
-                      {isExpired ? 'Kadaluarsa' : 'Aktif'}
-                    </Text>
-                  </View>
-                </View>
-
-                {post.content ? <Text style={styles.cardContent}>{post.content}</Text> : null}
-
-                {sortedMedia.length > 0 && (
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.mediaRow}>
-                    {sortedMedia.map((m) => (
-                      <View key={m.id} style={styles.mediaThumbWrap}>
-                        {m.media_type === 'image' ? (
-                          <Image source={{ uri: getPostMediaUrl(m.storage_path) }} style={styles.mediaThumb} />
-                        ) : (
-                          <View style={[styles.mediaThumb, styles.videoPlaceholder]}>
-                            <Text style={styles.videoPlaceholderText}>▶ Video{m.duration_seconds ? ` ${m.duration_seconds}s` : ''}</Text>
-                          </View>
-                        )}
-                      </View>
-                    ))}
-                  </ScrollView>
-                )}
-
-                <Text style={styles.cardMeta}>
-                  Diposting {formatDateTime(post.created_at)} · kadaluarsa {formatDateTime(post.expires_at)}
+        {filteredPosts.map(post => (
+          <View key={post.id} style={styles.postCard}>
+            <View style={styles.postHeader}>
+              <View style={styles.postAvatar}>
+                <Text style={styles.postAvatarText}>
+                  {getInitials((post.user as any)?.raw_user_meta_data?.name || 'User')}
                 </Text>
-
-                <Pressable
-                  style={[styles.actionBtn, styles.actionBtnDanger]}
-                  onPress={() => handleDelete(post)}
-                  disabled={isMutating}
-                >
-                  {isMutating ? (
-                    <ActivityIndicator size="small" color={COLORS.danger} />
-                  ) : (
-                    <Text style={[styles.actionBtnText, { color: COLORS.danger }]}>Hapus Postingan</Text>
-                  )}
-                </Pressable>
               </View>
-            );
-          })
-        )}
+              <View style={styles.postUser}>
+                <Text style={styles.postUserName}>
+                  {(post.user as any)?.raw_user_meta_data?.name || 'User'}
+                </Text>
+                <Text style={styles.postUserTime}>
+                  {new Date(post.created_at).toLocaleDateString('id-ID')}
+                </Text>
+              </View>
+              <View style={[styles.badge, { backgroundColor: '#D1FAE5' }]}>
+                <Text style={[styles.badgeText, { color: '#065F46' }]}>Aktif</Text>
+              </View>
+            </View>
+
+            {post.media && post.media.length > 0 && (
+              <View style={styles.postMedia}>
+                <Text style={styles.postMediaText}>[Media]</Text>
+              </View>
+            )}
+
+            <Text style={styles.postCaption}>{post.content}</Text>
+
+            <View style={styles.postActions}>
+              <Text style={styles.postStats}>❤️ {post.likes_count || 0}  💬 {post.comments_count || 0}  🔖 {post.saves_count || 0}</Text>
+              <TouchableOpacity onPress={() => handleDelete(post.id)}>
+                <Text style={styles.deleteText}>🗑️ Hapus</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ))}
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.surface },
-  flex: { flex: 1 },
-  fontLoadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.surface },
-
-  header: {
+  container: { flex: 1, backgroundColor: COLORS.background },
+  topbar: {
+    backgroundColor: COLORS.white,
+    padding: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingBottom: 14,
-    backgroundColor: COLORS.blueDeep,
+    justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
   },
-  backBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: 'rgba(255,255,255,0.14)',
+  topbarIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  backBtnText: { color: '#fff', fontSize: 18, fontFamily: 'Inter_700Bold' },
-  headerTitle: { color: '#fff', fontSize: 17, fontFamily: 'SpaceGrotesk_700Bold' },
-  headerSub: { color: 'rgba(255,255,255,0.7)', fontSize: 11.5, fontFamily: 'Inter_500Medium', marginTop: 2 },
-
-  scrollContent: { padding: 16, paddingBottom: 40, gap: 12 },
-  loadingBox: { alignItems: 'center', paddingVertical: 60 },
-  emptyText: { color: COLORS.inkSoft, fontFamily: 'Inter_500Medium', fontSize: 12.5, textAlign: 'center', paddingVertical: 40, lineHeight: 18 },
-
-  card: { backgroundColor: '#fff', borderWidth: 1.4, borderColor: COLORS.line, borderRadius: 16, padding: 14, gap: 8 },
-  cardTopRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  cardAuthor: { flex: 1, fontFamily: 'Inter_700Bold', fontSize: 13.5, color: COLORS.ink },
-  statusBadge: { borderRadius: 100, paddingHorizontal: 9, paddingVertical: 4 },
-  statusBadgeText: { fontFamily: 'Inter_700Bold', fontSize: 10 },
-  cardContent: { fontFamily: 'Inter_500Medium', fontSize: 13, color: COLORS.ink, lineHeight: 18 },
-
-  mediaRow: { marginTop: 2 },
-  mediaThumbWrap: { marginRight: 8 },
-  mediaThumb: { width: 84, height: 84, borderRadius: 10, backgroundColor: '#EEF1FA' },
-  videoPlaceholder: { alignItems: 'center', justifyContent: 'center', padding: 4 },
-  videoPlaceholderText: { fontFamily: 'Inter_600SemiBold', fontSize: 10, color: COLORS.inkSoft, textAlign: 'center' },
-
-  cardMeta: { fontFamily: 'Inter_500Medium', fontSize: 10.5, color: '#9AA3B8' },
-
-  actionBtn: {
-    alignItems: 'center',
-    paddingVertical: 9,
-    borderRadius: 100,
-    borderWidth: 1.4,
-    borderColor: COLORS.line,
-    backgroundColor: '#FBFCFF',
-    marginTop: 4,
+  topbarIconText: { fontSize: 18, color: COLORS.primary },
+  topbarTitle: { fontSize: 17, fontWeight: '700' },
+  tabs: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.white,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+    paddingHorizontal: 16,
+    gap: 16,
   },
-  actionBtnText: { fontFamily: 'Inter_700Bold', fontSize: 11.5, color: COLORS.ink },
-  actionBtnDanger: { borderColor: COLORS.dangerBg, backgroundColor: COLORS.dangerBg },
+  tab: {
+    paddingVertical: 12,
+    borderBottomWidth: 2.5,
+    borderBottomColor: 'transparent',
+  },
+  tabActive: { borderBottomColor: COLORS.primary },
+  tabText: { fontSize: 14, fontWeight: '600', color: COLORS.textMuted },
+  tabTextActive: { color: COLORS.primary },
+  postCard: {
+    backgroundColor: COLORS.white,
+    marginBottom: 12,
+    paddingBottom: 12,
+  },
+  postHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    gap: 10,
+  },
+  postAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  postAvatarText: { color: COLORS.white, fontWeight: '700', fontSize: 14 },
+  postUser: { flex: 1 },
+  postUserName: { fontSize: 14, fontWeight: '600' },
+  postUserTime: { fontSize: 12, color: COLORS.textMuted },
+  badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
+  badgeText: { fontSize: 11, fontWeight: '600' },
+  postMedia: {
+    width: '100%',
+    aspectRatio: 4 / 3,
+    backgroundColor: COLORS.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  postMediaText: { color: COLORS.textMuted, fontSize: 14 },
+  postCaption: { paddingHorizontal: 16, paddingVertical: 10, fontSize: 14, lineHeight: 20 },
+  postActions: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  postStats: { fontSize: 13, color: COLORS.textSecondary },
+  deleteText: { color: COLORS.danger, fontSize: 13, fontWeight: '600' },
 });

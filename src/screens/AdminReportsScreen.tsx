@@ -1,301 +1,209 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
-  View,
-  Text,
-  Pressable,
-  StyleSheet,
-  ScrollView,
-  RefreshControl,
-  ActivityIndicator,
-  Alert,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  RefreshControl, Alert,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useFonts } from 'expo-font';
-import { SpaceGrotesk_600SemiBold, SpaceGrotesk_700Bold } from '@expo-google-fonts/space-grotesk';
-import {
-  Inter_400Regular,
-  Inter_500Medium,
-  Inter_600SemiBold,
-  Inter_700Bold,
-} from '@expo-google-fonts/inter';
-import { getAllReportsForAdmin, markAsRead, deleteReport } from '@services';
-import { supabase } from '@lib/supabase';
-import type { ReportWithDetails, RootStackParamList } from '@types';
-import { formatDateTime } from '@utils';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { RootStackParamList, Report } from '../types';
+import { COLORS } from '../constants/app';
+import { supabase } from '../lib/supabase';
 
-type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+type Props = NativeStackScreenProps<RootStackParamList, 'AdminReports'>;
 
-const COLORS = {
-  bluePrimary: '#1D63ED',
-  blueDeep: '#0B1E3D',
-  surface: '#F7F9FF',
-  ink: '#10162B',
-  inkSoft: '#5B6478',
-  line: '#E6EAF5',
-  danger: '#D92D20',
-  dangerBg: '#FEF2F1',
-  successBg: '#EAFBF4',
-  success: '#0F9D6B',
-};
+export default function AdminReportsScreen({ navigation }: Props) {
+  const [reports, setReports] = useState<Report[]>([]);
+  const [activeTab, setActiveTab] = useState<'incoming' | 'read' | 'all'>('incoming');
+  const [refreshing, setRefreshing] = useState(false);
 
-export default function AdminReportsScreen() {
-  const insets = useSafeAreaInsets();
-  const navigation = useNavigation<NavigationProp>();
+  const fetchReports = async () => {
+    try {
+      // Ambil semua reports + cek read status untuk admin
+      const { data: reportsData, error } = await supabase
+        .from('reports')
+        .select('*, media:report_media(*)')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
 
-  const [fontsLoaded] = useFonts({
-    SpaceGrotesk_600SemiBold,
-    SpaceGrotesk_700Bold,
-    Inter_400Regular,
-    Inter_500Medium,
-    Inter_600SemiBold,
-    Inter_700Bold,
-  });
+      // Ambil report_recipients untuk admin
+      const { data: recipients } = await supabase
+        .from('report_recipients')
+        .select('*')
+        .eq('recipient_type', 'admin');
 
-  const [reports, setReports] = useState<ReportWithDetails[]>([]);
-  const [adminUserId, setAdminUserId] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [mutatingId, setMutatingId] = useState<string | null>(null);
-  const [filter, setFilter] = useState<'all' | 'unread'>('all');
+      const reportsWithRead = (reportsData || []).map(r => ({
+        ...r,
+        adminRead: recipients?.some(rec => rec.report_id === r.id && rec.is_read) || false,
+      }));
 
-  const load = useCallback(async () => {
-    const [{ data: sessionData }, { data, error }] = await Promise.all([
-      supabase.auth.getSession(),
-      getAllReportsForAdmin(),
-    ]);
-    setAdminUserId(sessionData.session?.user.id ?? null);
-    if (error) {
-      console.error('[AdminReports] Gagal memuat laporan:', error.message);
+      setReports(reportsWithRead);
+    } catch (err) {
+      console.error(err);
     }
-    setReports(data ?? []);
-  }, []);
+  };
 
   useEffect(() => {
-    (async () => {
-      setIsLoading(true);
-      await load();
-      setIsLoading(false);
-    })();
-  }, [load]);
+    fetchReports();
+  }, []);
 
-  const handleRefresh = useCallback(async () => {
-    setIsRefreshing(true);
-    await load();
-    setIsRefreshing(false);
-  }, [load]);
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchReports();
+    setRefreshing(false);
+  }, []);
 
-  /** Baris report_recipients milik admin yang sedang login, untuk laporan ini. */
-  const myRecipientRow = useCallback(
-    (report: ReportWithDetails) => report.recipients?.find((r) => r.recipient_user_id === adminUserId) ?? null,
-    [adminUserId]
-  );
-
-  const handleMarkRead = useCallback(
-    async (report: ReportWithDetails) => {
-      const recipientRow = myRecipientRow(report);
-      if (!recipientRow || recipientRow.is_read) return;
-      setMutatingId(report.id);
-      const { error } = await markAsRead(recipientRow.id);
-      setMutatingId(null);
-      if (error) {
-        Alert.alert('Gagal', error.message);
-        return;
-      }
-      load();
-    },
-    [myRecipientRow, load]
-  );
-
-  const handleDelete = useCallback(
-    (report: ReportWithDetails) => {
-      Alert.alert('Hapus Laporan', `Hapus laporan "${report.activity_name}"? Media terkait ikut terhapus.`, [
-        { text: 'Batal', style: 'cancel' },
-        {
-          text: 'Hapus',
-          style: 'destructive',
-          onPress: async () => {
-            setMutatingId(report.id);
-            const { error } = await deleteReport(report.id);
-            setMutatingId(null);
-            if (error) {
-              Alert.alert('Gagal', error.message);
-              return;
-            }
-            load();
-          },
+  const handleDelete = async (reportId: string) => {
+    Alert.alert('Konfirmasi', 'Hapus laporan ini?', [
+      { text: 'Batal', style: 'cancel' },
+      {
+        text: 'Hapus',
+        style: 'destructive',
+        onPress: async () => {
+          const { error } = await supabase.from('reports').delete().eq('id', reportId);
+          if (error) Alert.alert('Error', error.message);
+          else fetchReports();
         },
-      ]);
-    },
-    [load]
-  );
+      },
+    ]);
+  };
 
-  if (!fontsLoaded) {
-    return (
-      <View style={styles.fontLoadingContainer}>
-        <ActivityIndicator color={COLORS.bluePrimary} />
-      </View>
-    );
-  }
+  const filteredReports = reports.filter(r => {
+    if (activeTab === 'all') return true;
+    if (activeTab === 'incoming') return !r.adminRead;
+    return r.adminRead;
+  });
 
-  const unreadCount = reports.filter((r) => {
-    const row = myRecipientRow(r);
-    return row && !row.is_read;
-  }).length;
-
-  const visibleReports = filter === 'unread' ? reports.filter((r) => {
-    const row = myRecipientRow(r);
-    return row && !row.is_read;
-  }) : reports;
+  const markAsRead = async (reportId: string) => {
+    const { data: user } = await supabase.auth.getUser();
+    if (!user.user) return;
+    await supabase
+      .from('report_recipients')
+      .update({ is_read: true, read_at: new Date().toISOString() })
+      .eq('report_id', reportId)
+      .eq('recipient_user_id', user.user.id);
+    fetchReports();
+  };
 
   return (
-    <View style={styles.root}>
-      <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
-        <Pressable onPress={() => navigation.goBack()} hitSlop={10} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>←</Text>
-        </Pressable>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>Semua Laporan Masuk</Text>
-          <Text style={styles.headerSub}>{reports.length} laporan · {unreadCount} belum dibaca</Text>
-        </View>
+    <View style={styles.container}>
+      <View style={styles.topbar}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.topbarIcon}>
+          <Text style={styles.topbarIconText}>←</Text>
+        </TouchableOpacity>
+        <Text style={styles.topbarTitle}>Kelola Laporan</Text>
+        <View style={{ width: 40 }} />
       </View>
 
-      <View style={styles.filterRow}>
-        <Pressable
-          style={[styles.filterChip, filter === 'all' && styles.filterChipActive]}
-          onPress={() => setFilter('all')}
-        >
-          <Text style={[styles.filterChipText, filter === 'all' && styles.filterChipTextActive]}>Semua</Text>
-        </Pressable>
-        <Pressable
-          style={[styles.filterChip, filter === 'unread' && styles.filterChipActive]}
-          onPress={() => setFilter('unread')}
-        >
-          <Text style={[styles.filterChipText, filter === 'unread' && styles.filterChipTextActive]}>
-            Belum Dibaca ({unreadCount})
-          </Text>
-        </Pressable>
+      <View style={styles.tabs}>
+        {(['incoming', 'read', 'all'] as const).map(tab => (
+          <TouchableOpacity
+            key={tab}
+            style={[styles.tab, activeTab === tab && styles.tabActive]}
+            onPress={() => setActiveTab(tab)}
+          >
+            <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
+              {tab === 'incoming' ? 'Masuk' : tab === 'read' ? 'Sudah Dibaca' : 'Semua'}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
       <ScrollView
-        style={styles.flex}
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} tintColor={COLORS.bluePrimary} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        {isLoading ? (
-          <View style={styles.loadingBox}>
-            <ActivityIndicator color={COLORS.bluePrimary} />
-          </View>
-        ) : visibleReports.length === 0 ? (
-          <Text style={styles.emptyText}>
-            {filter === 'unread' ? 'Tidak ada laporan yang belum dibaca.' : 'Belum ada laporan masuk.'}
-          </Text>
-        ) : (
-          visibleReports.map((report) => {
-            const recipientRow = myRecipientRow(report);
-            const isUnread = !!recipientRow && !recipientRow.is_read;
-            const isMutating = mutatingId === report.id;
-            return (
-              <Pressable
-                key={report.id}
-                style={[styles.card, isUnread && styles.cardUnread]}
-                onPress={() => {
-                  if (isUnread) handleMarkRead(report);
-                  navigation.navigate('ReportDetail', { reportId: report.id });
-                }}
-              >
-                <View style={styles.cardTopRow}>
-                  <Text style={styles.cardTitle} numberOfLines={1}>{report.activity_name}</Text>
-                  {isUnread && <View style={styles.unreadDot} />}
-                </View>
-                <Text style={styles.cardMeta}>
-                  {report.creator_name} · {report.creator_position}
+        {filteredReports.map(report => (
+          <TouchableOpacity
+            key={report.id}
+            style={styles.listItem}
+            onPress={() => {
+              markAsRead(report.id);
+              navigation.navigate('ReportDetail', { reportId: report.id });
+            }}
+          >
+            <View style={[styles.listAvatar, { backgroundColor: '#3B82F6' }]}>
+              <Text style={styles.listAvatarText}>LP</Text>
+            </View>
+            <View style={styles.listContent}>
+              <Text style={styles.listTitle}>{report.activity_name}</Text>
+              <Text style={styles.listSubtitle}>
+                {report.creator_name} · {report.creator_position}
+              </Text>
+            </View>
+            <View style={styles.listMeta}>
+              <Text style={styles.listTime}>
+                {new Date(report.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+              </Text>
+              <View style={[styles.badge, { backgroundColor: report.adminRead ? '#D1FAE5' : '#FEF3C7' }]}>
+                <Text style={[styles.badgeText, { color: report.adminRead ? '#065F46' : '#92400E' }]}>
+                  {report.adminRead ? 'Dibaca' : 'Baru'}
                 </Text>
-                <Text style={styles.cardMeta}>{report.activity_place} · {formatDateTime(report.created_at)}</Text>
-                <Text style={styles.cardMedia}>{report.media?.length ?? 0} foto dokumentasi</Text>
-
-                <View style={styles.cardActions}>
-                  <Pressable
-                    style={styles.actionBtn}
-                    onPress={() => navigation.navigate('ReportDetail', { reportId: report.id })}
-                  >
-                    <Text style={styles.actionBtnText}>Buka Detail</Text>
-                  </Pressable>
-                  <Pressable
-                    style={[styles.actionBtn, styles.actionBtnDanger]}
-                    onPress={() => handleDelete(report)}
-                    disabled={isMutating}
-                  >
-                    {isMutating ? (
-                      <ActivityIndicator size="small" color={COLORS.danger} />
-                    ) : (
-                      <Text style={[styles.actionBtnText, { color: COLORS.danger }]}>Hapus</Text>
-                    )}
-                  </Pressable>
-                </View>
-              </Pressable>
-            );
-          })
-        )}
+              </View>
+            </View>
+          </TouchableOpacity>
+        ))}
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.surface },
-  flex: { flex: 1 },
-  fontLoadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.surface },
-
-  header: {
+  container: { flex: 1, backgroundColor: COLORS.background },
+  topbar: {
+    backgroundColor: COLORS.white,
+    padding: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingBottom: 14,
-    backgroundColor: COLORS.blueDeep,
+    justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
   },
-  backBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: 'rgba(255,255,255,0.14)',
+  topbarIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  backBtnText: { color: '#fff', fontSize: 18, fontFamily: 'Inter_700Bold' },
-  headerTitle: { color: '#fff', fontSize: 17, fontFamily: 'SpaceGrotesk_700Bold' },
-  headerSub: { color: 'rgba(255,255,255,0.7)', fontSize: 11.5, fontFamily: 'Inter_500Medium', marginTop: 2 },
-
-  filterRow: { flexDirection: 'row', gap: 8, padding: 16, paddingBottom: 4 },
-  filterChip: { borderWidth: 1.4, borderColor: COLORS.line, borderRadius: 100, paddingHorizontal: 14, paddingVertical: 8, backgroundColor: '#fff' },
-  filterChipActive: { backgroundColor: COLORS.bluePrimary, borderColor: COLORS.bluePrimary },
-  filterChipText: { fontFamily: 'Inter_600SemiBold', fontSize: 12, color: COLORS.ink },
-  filterChipTextActive: { color: '#fff' },
-
-  scrollContent: { padding: 16, paddingBottom: 40, gap: 12 },
-  loadingBox: { alignItems: 'center', paddingVertical: 60 },
-  emptyText: { color: COLORS.inkSoft, fontFamily: 'Inter_500Medium', fontSize: 12.5, textAlign: 'center', paddingVertical: 40 },
-
-  card: { backgroundColor: '#fff', borderWidth: 1.4, borderColor: COLORS.line, borderRadius: 16, padding: 14, gap: 4 },
-  cardUnread: { borderColor: COLORS.bluePrimary },
-  cardTopRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  cardTitle: { flex: 1, fontFamily: 'Inter_700Bold', fontSize: 14, color: COLORS.ink },
-  unreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.bluePrimary },
-  cardMeta: { fontFamily: 'Inter_500Medium', fontSize: 11.5, color: COLORS.inkSoft },
-  cardMedia: { fontFamily: 'Inter_500Medium', fontSize: 10.5, color: '#9AA3B8', marginTop: 2 },
-
-  cardActions: { flexDirection: 'row', gap: 8, marginTop: 8 },
-  actionBtn: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 9,
-    borderRadius: 100,
-    borderWidth: 1.4,
-    borderColor: COLORS.line,
-    backgroundColor: '#FBFCFF',
+  topbarIconText: { fontSize: 18, color: COLORS.primary },
+  topbarTitle: { fontSize: 17, fontWeight: '700' },
+  tabs: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.white,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+    paddingHorizontal: 16,
+    gap: 16,
   },
-  actionBtnText: { fontFamily: 'Inter_700Bold', fontSize: 11.5, color: COLORS.ink },
-  actionBtnDanger: { borderColor: COLORS.dangerBg, backgroundColor: COLORS.dangerBg },
+  tab: {
+    paddingVertical: 12,
+    borderBottomWidth: 2.5,
+    borderBottomColor: 'transparent',
+  },
+  tabActive: { borderBottomColor: COLORS.primary },
+  tabText: { fontSize: 14, fontWeight: '600', color: COLORS.textMuted },
+  tabTextActive: { color: COLORS.primary },
+  listItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    backgroundColor: COLORS.white,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  listAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  listAvatarText: { color: COLORS.white, fontWeight: '700', fontSize: 15 },
+  listContent: { flex: 1 },
+  listTitle: { fontSize: 15, fontWeight: '600' },
+  listSubtitle: { fontSize: 13, color: COLORS.textSecondary, marginTop: 2 },
+  listMeta: { alignItems: 'flex-end' },
+  listTime: { fontSize: 12, color: COLORS.textMuted },
+  badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, marginTop: 4 },
+  badgeText: { fontSize: 11, fontWeight: '600' },
 });
