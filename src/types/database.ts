@@ -24,9 +24,7 @@ export interface Report {
   updated_at: string; // ISO 8601
 }
 
-/** Constraint aktual backend: `status text not null default 'sent' check (status = 'sent')`.
- *  Belum ada workflow draft/approve/reject — semua laporan yang tersimpan otomatis 'sent'. */
-export type ReportStatus = 'sent';
+export type ReportStatus = 'draft' | 'submitted' | 'approved' | 'rejected';
 
 // Payload insert reports — HANYA field input user
 export interface ReportInsertPayload {
@@ -81,19 +79,19 @@ export type RecipientType = 'admin' | 'ketua' | 'wakil_ketua';
 
 // ──────────────────────────────────────────
 // TABEL: profiles
+// (skema asli hanya: id, name, role — BUKAN email/full_name/avatar_url)
 // ──────────────────────────────────────────
 export interface Profile {
   id: string;
   name: string;
-  role: ProfileRole;
+  role: string;
   created_at: string;
   updated_at: string;
 }
 
-export type ProfileRole = 'admin' | 'user';
-
 // ──────────────────────────────────────────
 // TABEL: members
+// (full_name/phone/address/avatar_url ada di tabel members, BUKAN di profiles)
 // ──────────────────────────────────────────
 export interface Member {
   id: string;
@@ -108,21 +106,20 @@ export interface Member {
   updated_at: string;
 }
 
-export type RegistrationStatus = 'pending' | 'active' | 'blocked';
+export type RegistrationStatus = 'active' | 'pending' | 'inactive' | 'rejected';
 
 // ──────────────────────────────────────────
 // TABEL: positions
+// (kolom asli: id, code, name, type, sort_order, created_at — TIDAK ada level/updated_at)
 // ──────────────────────────────────────────
 export interface Position {
   id: string;
   code: string;
   name: string;
-  type: PositionType;
-  sort_order: number | null;
+  type: string;
+  sort_order: number;
   created_at: string;
 }
-
-export type PositionType = 'leadership' | 'pokja';
 
 // ──────────────────────────────────────────
 // TABEL: announcements
@@ -140,13 +137,20 @@ export interface Announcement {
   updated_at: string;
 }
 
-export interface AnnouncementInsertPayload {
-  title?: string | null;
-  message: string;
-  is_active?: boolean;
-  start_at?: string | null;
-  end_at?: string | null;
-  display_duration_seconds?: number;
+// ──────────────────────────────────────────
+// TABEL: notification_inbox
+// ──────────────────────────────────────────
+export type NotificationKind = 'chat_message' | 'report_received' | 'announcement' | 'social_activity';
+
+export interface NotificationInboxItem {
+  id: string;
+  user_id: string;
+  kind: NotificationKind;
+  title: string;
+  body: string;
+  data: Record<string, unknown>;
+  created_at: string;
+  read_at: string | null;
 }
 
 // ──────────────────────────────────────────
@@ -159,6 +163,7 @@ export interface ReportWithDetails extends Report {
 
 export interface MemberWithPosition extends Member {
   position: Position | null;
+  profile: Profile | null;
 }
 
 export interface CreatorIdentity {
