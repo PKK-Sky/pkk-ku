@@ -27,7 +27,6 @@ export default function AdminDashboardScreen({ navigation }: Props) {
     totalReports: 0, unreadReports: 0, activePosts: 0, activeAnnouncements: 0,
   });
   const [refreshing, setRefreshing] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   const fetchStats = async () => {
     try {
@@ -74,7 +73,6 @@ export default function AdminDashboardScreen({ navigation }: Props) {
     } catch (err) {
       console.error('fetchStats error', err);
     } finally {
-      setLoading(false);
     }
   };
 

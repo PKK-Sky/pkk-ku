@@ -47,6 +47,7 @@
       "./plugins/withSplashScreenFix"
     ],
     "extra": {
+      "supabaseUrl": "https://vmbqsogwiaqwqmjpobge.supabase.co",
       "eas": {
         "projectId": "d5f69877-ce19-4cdd-84e5-ea17527b0fbc"
       }
