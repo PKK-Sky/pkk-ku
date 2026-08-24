@@ -31,13 +31,8 @@ jobs:
         with:
           node-version: 22
 
-      - name: 🔧 Setup EAS CLI
+      - name: 🔧 Install EAS CLI
         run: npm install -g eas-cli@latest
-
-      - name: 🔐 Login ke EAS
-        run: eas login --token ${{ secrets.EXPO_TOKEN }}
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
       - name: 📦 Install dependencies
         run: yarn install --ignore-scripts --non-interactive
@@ -56,6 +51,7 @@ jobs:
             --message "${{ github.event.inputs.message }}" \
             --non-interactive
         env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
           EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
 
