@@ -1,4 +1,5 @@
 import React from 'react';
+import { ActivityIndicator, Text, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuthContext } from '@context/AuthContext';
@@ -32,8 +33,18 @@ export default function AppNavigator() {
     (isAuthenticated && !isRoleLoading && !isAdmin && isActivationStatusLoading);
 
   if (isStillResolvingAuth) {
-    // Bisa diganti dengan splash screen
-    return null;
+    return (
+      <View
+        style={{
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}
+      >
+        <ActivityIndicator size="large" />
+        <Text>Memuat akun...</Text>
+      </View>
+    );
   }
 
   return (
