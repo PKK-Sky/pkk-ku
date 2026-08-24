@@ -114,6 +114,105 @@ export async function signInWithEmail(email: string, password: string) {
   return supabase.auth.signInWithPassword({ email, password });
 }
 
+// ────────────────────────────────────────────────────────────
+// Alur Aktivasi Mandiri Anggota (OTP)
+// Langkah: checkMemberByPhone -> sendPhoneOtp -> verifyPhoneOtp
+//          -> completeMemberRegistration -> setAccountPassword
+// Sesuai kontrak RPC di docs/supabase/peta_rpc.md bagian 1.
+// ────────────────────────────────────────────────────────────
+
+export interface CheckMemberByPhoneResult {
+  found: boolean;
+  already_registered?: boolean;
+  blocked?: boolean;
+  full_name?: string;
+  position_name?: string;
+  message?: string;
+}
+
+/**
+ * Langkah 1: cek apakah nomor HP terdaftar di `members` dan siap diaktivasi.
+ * Callable tanpa login (RPC di-grant ke anon). Rate limit 5x/15 menit per nomor,
+ * dijaga di sisi database (tabel phone_check_attempts) — kalau lewat batas,
+ * Supabase akan mengembalikan error (bukan hasil jsonb biasa).
+ */
+export async function checkMemberByPhone(
+  phoneE164: string
+): Promise<{ data: CheckMemberByPhoneResult | null; error: Error | null }> {
+  const { data, error } = await supabase.rpc('check_member_by_phone', { p_phone: phoneE164 });
+  if (error) return { data: null, error };
+  return { data: data as CheckMemberByPhoneResult, error: null };
+}
+
+/** Langkah 2a: kirim kode OTP SMS ke nomor HP. */
+export async function sendPhoneOtp(phoneE164: string) {
+  return supabase.auth.signInWithOtp({ phone: phoneE164 });
+}
+
+/**
+ * Langkah 2b: verifikasi kode OTP. Sukses -> Supabase langsung membuat session
+ * (isAuthenticated akan true). Registrasi member BELUM selesai di titik ini —
+ * lanjut ke completeMemberRegistration.
+ */
+export async function verifyPhoneOtp(phoneE164: string, token: string) {
+  return supabase.auth.verifyOtp({ phone: phoneE164, token, type: 'sms' });
+}
+
+/**
+ * Langkah 3: selesaikan registrasi — link members.user_id ke auth.uid() dan
+ * buat row profiles. Wajib sudah punya session (dari verifyPhoneOtp).
+ */
+export async function completeMemberRegistration(
+  phoneE164: string,
+  address?: string | null,
+  avatarUrl?: string | null
+): Promise<{ data: { success: boolean; member_id: string } | null; error: Error | null }> {
+  const { data, error } = await supabase.rpc('complete_member_registration', {
+    p_phone: phoneE164,
+    p_address: address ?? null,
+    p_avatar_url: avatarUrl ?? null,
+  });
+  if (error) return { data: null, error };
+  return { data: data as { success: boolean; member_id: string }, error: null };
+}
+
+/**
+ * Langkah 4: set password akun, supaya selanjutnya anggota bisa login pakai
+ * nomor HP + password (signInWithPhone), bukan OTP terus-menerus.
+ */
+export async function setAccountPassword(password: string) {
+  return supabase.auth.updateUser({ password });
+}
+
+export interface MemberLinkStatus {
+  /** True kalau user yang login sudah punya row `members` dengan user_id terhubung
+   *  (artinya sudah pernah menyelesaikan completeMemberRegistration). */
+  isLinked: boolean;
+}
+
+/**
+ * Cek apakah user yang sedang login (session OTP baru atau lama) sudah pernah
+ * menyelesaikan aktivasi (row members.user_id sudah terhubung). Dipakai
+ * AuthContext untuk memutuskan apakah user perlu diarahkan lanjut ke langkah
+ * "lengkapi profil & set password" alih-alih langsung ke Home.
+ */
+export async function getMemberLinkStatus(userId: string): Promise<MemberLinkStatus> {
+  const { data, error } = await supabase
+    .from('members')
+    .select('id')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error) {
+    console.error('[authService] Gagal cek status keterhubungan member:', error.message);
+    // Fail-open ke "sudah linked" supaya error jaringan sementara tidak mengunci
+    // user yang sebenarnya sudah aktif ke layar aktivasi berulang-ulang.
+    return { isLinked: true };
+  }
+
+  return { isLinked: !!data };
+}
+
 /**
  * Login anggota dengan Nomor HP + Password.
  * Nomor HP wajib sudah dalam format E.164 (+62...) — gunakan normalizePhoneToE164
