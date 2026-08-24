@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@lib/supabase';
+import { getMemberLinkStatus } from '@services';
 import type { ProfileRole } from '@types';
 
 interface AuthContextType {
@@ -14,6 +15,16 @@ interface AuthContextType {
   isAdmin: boolean;
   /** True setelah proses pengambilan role selesai (berhasil atau gagal). */
   isRoleLoading: boolean;
+  /**
+   * True kalau user sudah login (biasanya lewat verifikasi OTP) TAPI belum
+   * pernah menyelesaikan alur aktivasi (completeMemberRegistration belum
+   * dipanggil, jadi members.user_id belum terhubung). Dipakai AppNavigator
+   * untuk mengarahkan ke lanjutan layar aktivasi, bukan langsung ke Home.
+   * Selalu false untuk admin.
+   */
+  needsActivation: boolean;
+  /** True selama status needsActivation masih dicek. */
+  isActivationStatusLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -24,6 +35,8 @@ const AuthContext = createContext<AuthContextType>({
   role: null,
   isAdmin: false,
   isRoleLoading: true,
+  needsActivation: false,
+  isActivationStatusLoading: true,
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -31,6 +44,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [role, setRole] = useState<ProfileRole | null>(null);
   const [isRoleLoading, setIsRoleLoading] = useState(true);
+  const [needsActivation, setNeedsActivation] = useState(false);
+  const [isActivationStatusLoading, setIsActivationStatusLoading] = useState(true);
 
   const loadRole = useCallback(async (userId: string | undefined) => {
     if (!userId) {
@@ -56,20 +71,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsRoleLoading(false);
   }, []);
 
+  const loadActivationStatus = useCallback(async (userId: string | undefined, currentRole: ProfileRole | null) => {
+    if (!userId || currentRole === 'admin') {
+      // Admin tidak pernah melalui alur aktivasi anggota.
+      setNeedsActivation(false);
+      setIsActivationStatusLoading(false);
+      return;
+    }
+    setIsActivationStatusLoading(true);
+    const { isLinked } = await getMemberLinkStatus(userId);
+    setNeedsActivation(!isLinked);
+    setIsActivationStatusLoading(false);
+  }, []);
+
   useEffect(() => {
     // Cek session saat mount
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setIsLoading(false);
-      loadRole(session?.user?.id);
+      await loadRole(session?.user?.id);
     });
 
     // Subscribe perubahan auth state
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      async (_event, session) => {
         setSession(session);
         setIsLoading(false);
-        loadRole(session?.user?.id);
+        await loadRole(session?.user?.id);
       }
     );
 
@@ -77,6 +105,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       subscription.unsubscribe();
     };
   }, [loadRole]);
+
+  // Cek status aktivasi setiap kali role selesai dimuat ulang (mis. setelah login/OTP baru).
+  useEffect(() => {
+    if (isRoleLoading) return;
+    loadActivationStatus(session?.user?.id, role);
+  }, [session?.user?.id, role, isRoleLoading, loadActivationStatus]);
 
   const value: AuthContextType = {
     session,
@@ -86,6 +120,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     role,
     isAdmin: role === 'admin',
     isRoleLoading,
+    needsActivation,
+    isActivationStatusLoading,
   };
 
   return (
