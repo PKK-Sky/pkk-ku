@@ -145,24 +145,6 @@ export default function HomeScreen({ navigation }: Props) {
             </View>
             <Text style={styles.shortcutLabel}>Laporan Saya</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.shortcutItem} onPress={() => navigation.navigate('Feed')}>
-            <View style={[styles.shortcutIcon, { backgroundColor: '#FCE7F3' }]}>
-              <Text style={[styles.shortcutIconText, { color: '#DB2777' }]}>🖼️</Text>
-            </View>
-            <Text style={styles.shortcutLabel}>Feed</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.shortcutItem} onPress={() => navigation.navigate('ChatList')}>
-            <View style={[styles.shortcutIcon, { backgroundColor: '#D1FAE5' }]}>
-              <Text style={[styles.shortcutIconText, { color: '#059669' }]}>💬</Text>
-            </View>
-            <Text style={styles.shortcutLabel}>Chat</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.shortcutItem} onPress={() => navigation.navigate('Announcements')}>
-            <View style={[styles.shortcutIcon, { backgroundColor: '#E0E7FF' }]}>
-              <Text style={[styles.shortcutIconText, { color: '#4F46E5' }]}>📢</Text>
-            </View>
-            <Text style={styles.shortcutLabel}>Pengumuman</Text>
-          </TouchableOpacity>
           <TouchableOpacity style={styles.shortcutItem} onPress={() => navigation.navigate('Profile')}>
             <View style={[styles.shortcutIcon, { backgroundColor: '#F3E8FF' }]}>
               <Text style={[styles.shortcutIconText, { color: '#9333EA' }]}>👤</Text>
@@ -182,17 +164,16 @@ export default function HomeScreen({ navigation }: Props) {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>PENGUMUMAN TERBARU</Text>
         {announcements.map(ann => (
-          <TouchableOpacity
+          <View
             key={ann.id}
             style={[styles.annCard, { borderLeftColor: COLORS.primary }]}
-            onPress={() => navigation.navigate('Announcements')}
           >
             <Text style={styles.annTitle}>{ann.title || 'Pengumuman'}</Text>
             <Text style={styles.annMessage} numberOfLines={2}>{ann.message}</Text>
             <Text style={styles.annDate}>
               {ann.start_at ? new Date(ann.start_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : ''}
             </Text>
-          </TouchableOpacity>
+          </View>
         ))}
         {announcements.length === 0 && (
           <Text style={styles.emptyText}>Tidak ada pengumuman aktif</Text>
