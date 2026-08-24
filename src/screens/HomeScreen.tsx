@@ -174,7 +174,12 @@ export default function HomeScreen({ navigation }: Props) {
 
       {/* Announcements */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>PENGUMUMAN TERBARU</Text>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>PENGUMUMAN TERBARU</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('Announcements')}>
+            <Text style={styles.seeAll}>Lihat semua</Text>
+          </TouchableOpacity>
+        </View>
         {announcements.map(ann => (
           <View
             key={ann.id}
@@ -257,6 +262,12 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     marginBottom: 10,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  seeAll: { color: COLORS.primary, fontSize: 12, fontWeight: '600' },
   shortcutGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',

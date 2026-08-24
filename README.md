@@ -109,9 +109,9 @@ Tabel `posts` → `post_media` (1:N, image/video) → `post_likes`/`post_saves` 
 **Arahan implementasi:** feed infinite scroll, upload multi-media per post, tombol like/save, komentar + reply, tampilkan countdown/label expired. Insert ke `post_comments` **otomatis** memicu notifikasi lewat trigger — jangan insert manual ke `notification_inbox`/`push_queue`.
 
 ### 3.9 Chat Pribadi 1:1
-`🔌 BACKEND SIAP, FE BELUM ADA`
+`✅ SELESAI`
 Tabel `chat_conversations` (`direct_key` unik cegah duplikat), `chat_members` (composite PK, `last_read_at`, `muted_until`), `chat_messages` (`body` 1–4000 char, `client_message_id` untuk idempotency, `reply_to_id`, soft delete via `deleted_at`), `chat_attachments` (maks 10MB, tipe dibatasi: jpeg/png/webp/pdf/mp4/mpeg/ogg/webm). **Admin bukan partisipan** (`chat_is_non_admin()` — desain permanen, lihat §4).
-**Arahan implementasi:** mulai percakapan HARUS lewat RPC `create_direct_chat(p_other_user_id)` (client **tidak** insert langsung ke `chat_conversations`/`chat_members`, tidak ada policy INSERT di situ). Kirim pesan sertakan `client_message_id` dari FE untuk dedupe saat retry/optimistic UI. Subscribe Supabase Realtime per `conversation_id` untuk pesan masuk.
+Frontend sudah menyediakan daftar percakapan, pencarian anggota untuk percakapan baru, ruang chat, pengiriman pesan dengan `client_message_id`, penandaan pesan dibaca, dan subscription Supabase Realtime per `conversation_id`. Mulai percakapan tetap melalui RPC `create_direct_chat(p_other_user_id)`.
 
 ### 3.10 Notifikasi & Push (sisi Anggota)
 `🔌 BACKEND SIAP, FE BELUM ADA`
@@ -119,9 +119,9 @@ Sama seperti §2.6 dari sisi anggota: `notification_inbox` (realtime), `notifica
 **Arahan implementasi:** sama seperti §2.6 — registrasi token Expo saat login, subscribe realtime untuk in-app, halaman toggle preferensi. Jangan panggil Edge Function push manapun langsung dari FE.
 
 ### 3.11 Lihat Pengumuman
-`🔌 BACKEND SIAP, FE BELUM ADA`
+`✅ SELESAI`
 Baca `announcements` filter `is_active = true` dan dalam rentang `start_at`–`end_at`, tampilkan sebagai banner/marquee di halaman utama, durasi tampil per item pakai `display_duration_seconds`.
-**Arahan implementasi:** komponen carousel/marquee di `HomeScreen.tsx`, query read-only (RLS sudah izinkan semua user baca pengumuman aktif — cek `docs/supabase/peta_rls.md` untuk detail policy persis sebelum implementasi).
+Frontend menampilkan pengumuman aktif terbaru di `HomeScreen` dan menyediakan halaman `Announcements` untuk daftar lengkap dengan pull-to-refresh. Query menghormati `is_active` serta batas `start_at`/`end_at` yang nullable.
 
 ---
 
