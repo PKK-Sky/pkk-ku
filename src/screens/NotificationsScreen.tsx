@@ -48,7 +48,7 @@ export default function NotificationsScreen({ navigation }: Props) {
 
   const markAllRead = async () => {
     const { data: user } = await supabase.auth.getUser();
-    await supabase.from('notification_inbox').update({ is_read: true }).eq('user_id', user.user?.id);
+    await supabase.from('notification_inbox').update({ read_at: new Date().toISOString() }).eq('user_id', user.user?.id);
     fetchData();
   };
 
@@ -82,7 +82,7 @@ export default function NotificationsScreen({ navigation }: Props) {
 
       <ScrollView refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
         {notifications.map(notif => (
-          <View key={notif.id} style={[styles.listItem, !notif.is_read && styles.listItemUnread]}>
+          <View key={notif.id} style={[styles.listItem, !notif.read_at && styles.listItemUnread]}>
             <View style={[styles.listAvatar, { backgroundColor: COLORS.primaryLight }]}>
               <Text style={styles.listAvatarText}>{getIcon(notif.kind)}</Text>
             </View>
@@ -94,7 +94,7 @@ export default function NotificationsScreen({ navigation }: Props) {
               <Text style={styles.listTime}>
                 {new Date(notif.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
               </Text>
-              {!notif.is_read && <View style={styles.unreadDot} />}
+              {!notif.read_at && <View style={styles.unreadDot} />}
             </View>
           </View>
         ))}
