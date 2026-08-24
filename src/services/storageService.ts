@@ -3,7 +3,7 @@
  * Sesuai kontrak backend §5.
  */
 import { supabase } from '@lib/supabase';
-import { STORAGE_CONFIG } from '@constants';
+import { STORAGE_CONFIG } from '@constants/storage';
 import * as FileSystem from 'expo-file-system';
 import { decode } from 'base64-arraybuffer';
 
