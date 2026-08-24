@@ -34,7 +34,10 @@ export type RootStackParamList = {
   ReportCreate: { reportId?: string };
   ReportDetail: { reportId: string };
   ReportPreview: { reportId: string };
-  PdfViewer: { reportId: string };
+  // UBAH: kunci ini sebelumnya "PdfViewer", diganti agar sinkron dengan
+  // Stack.Screen name="ReportPdfViewer" di navigation/AppNavigator.tsx
+  // dan navigation.navigate('ReportPdfViewer', ...) di ReportDetailScreen.tsx
+  ReportPdfViewer: { reportId: string };
 
   // Chat Stack
   ChatList: undefined;
@@ -63,6 +66,15 @@ export type ReportStatus = 'sent';
 export type MediaType = 'image' | 'video';
 export type RecipientType = 'admin' | 'ketua' | 'wakil_ketua';
 export type NotificationKind = 'chat_message' | 'report_received' | 'announcement' | 'social_activity' | 'system';
+
+// TAMBAHAN: dipindah dari types/database.ts (yang akan dihapus) — dipakai
+// oleh AuthContext.tsx
+export type ProfileRole = 'admin' | 'user';
+
+// TAMBAHAN: alias eksplisit RegistrationStatus = MemberStatus, dipindah dari
+// types/database.ts (nilai di sana SALAH: 'inactive'/'rejected' tidak pernah
+// ada di constraint asli). Dipakai oleh adminService.ts.
+export type RegistrationStatus = MemberStatus;
 
 export interface Profile {
   id: string;
@@ -93,6 +105,13 @@ export interface Member {
   created_at: string;
   updated_at: string;
   position?: Position;
+}
+
+// TAMBAHAN: dipindah dari types/database.ts — dipakai oleh adminService.ts
+// dan authService.ts (member + jabatan + profil sekaligus).
+export interface MemberWithPosition extends Member {
+  position: Position | null;
+  profile: Profile | null;
 }
 
 export interface Announcement {
@@ -188,6 +207,13 @@ export interface ReportRecipient {
   created_at: string;
 }
 
+// TAMBAHAN: dipindah dari types/database.ts — dipakai oleh pdfService.ts,
+// useMyReports.ts, ReportListScreen.tsx, ReportDetailScreen.tsx.
+export interface ReportWithDetails extends Report {
+  media: ReportMedia[];
+  recipients: ReportRecipient[];
+}
+
 export interface ChatConversation {
   id: string;
   direct_key: string;
@@ -225,7 +251,11 @@ export interface NotificationInbox {
   title: string;
   body: string;
   data: Record<string, unknown> | null;
-  is_read: boolean;
+  // UBAH: sebelumnya "is_read: boolean" — kolom ini TIDAK ADA di database.
+  // Kolom asli tabel notification_inbox adalah "read_at" (timestamptz,
+  // nullable). notificationService.ts & useNotifications.ts sudah query
+  // pakai read_at, jadi tipe ini disesuaikan.
+  read_at: string | null;
   created_at: string;
 }
 
