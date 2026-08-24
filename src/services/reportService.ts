@@ -87,6 +87,23 @@ export async function getRecipientReports() {
   return { data, error };
 }
 
+/**
+ * Ambil seluruh laporan yang dapat dibaca admin.
+ * RLS backend menentukan akses; frontend tidak menambahkan recipient secara manual.
+ */
+export async function getAllReportsForAdmin() {
+  const { data, error } = await supabase
+    .from('reports')
+    .select(`
+      *,
+      media:report_media(*),
+      recipients:report_recipients(*)
+    `)
+    .order('created_at', { ascending: false });
+
+  return { data: data as ReportWithDetails[] | null, error };
+}
+
 // ──────────────────────────────────────────
 // UPDATE
 // ──────────────────────────────────────────

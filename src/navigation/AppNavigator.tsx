@@ -10,6 +10,11 @@ import LoginScreen from '@screens/LoginScreen';
 import AdminLoginScreen from '@screens/AdminLoginScreen';
 import MemberActivationScreen from '@screens/MemberActivationScreen';
 import HomeScreen from '@screens/HomeScreen';
+import FeedScreen from '@screens/FeedScreen';
+import CreatePostScreen from '@screens/CreatePostScreen';
+import NewChatScreen from '@screens/NewChatScreen';
+import ChatRoomScreen from '@screens/ChatRoomScreen';
+import PostDetailScreen from '@screens/PostDetailScreen';
 import AdminDashboardScreen from '@screens/AdminDashboardScreen';
 import AdminMembersScreen from '@screens/AdminMembersScreen';
 import AdminAddMemberScreen from '@screens/AdminAddMemberScreen';
@@ -97,6 +102,12 @@ export default function AppNavigator() {
         ) : (
           <>
             <Stack.Screen name="Home" component={HomeScreen} />
+            <Stack.Screen name="Feed" component={FeedScreen} />
+            <Stack.Screen name="CreatePost" component={CreatePostScreen} />
+            <Stack.Screen name="PostDetail" component={PostDetailScreen} />
+            <Stack.Screen name="ChatList" component={NewChatScreen} />
+            <Stack.Screen name="NewChat" component={NewChatScreen} />
+            <Stack.Screen name="ChatRoom" component={ChatRoomScreen} />
             <Stack.Screen name="ReportList" component={ReportListScreen} />
             <Stack.Screen name="ReportDetail" component={ReportDetailScreen} />
             <Stack.Screen name="ReportCreate" component={ReportCreateScreen} />
