@@ -10,7 +10,8 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { RootStackParamList, ReportFormData } from '@types';
+import type { RootStackParamList } from '@types';
+import type { ReportFormData } from '@types/form';
 import { useEligibility, useImagePicker, useReportSubmission } from '@hooks';
 import { validateReportForm, getCurrentDate, getCurrentTime } from '@utils';
 import { STORAGE_CONFIG } from '@constants';
