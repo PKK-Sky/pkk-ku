@@ -1,7 +1,14 @@
-/**
- * Jabatan yang BERHAK membuat laporan kegiatan.
- * Sesuai kontrak backend §3.
- */
+export const POSITIONS = [
+  { code: 'KETUA', name: 'Ketua', type: 'leadership' as const, capacity: 1 },
+  { code: 'WAKIL_KETUA', name: 'Wakil Ketua', type: 'leadership' as const, capacity: 1 },
+  { code: 'SEKRETARIS', name: 'Sekretaris', type: 'leadership' as const, capacity: 1 },
+  { code: 'BENDAHARA', name: 'Bendahara', type: 'leadership' as const, capacity: 1 },
+  { code: 'POKJA_I', name: 'Pokja I', type: 'pokja' as const, capacity: 2 },
+  { code: 'POKJA_II', name: 'Pokja II', type: 'pokja' as const, capacity: 2 },
+  { code: 'POKJA_III', name: 'Pokja III', type: 'pokja' as const, capacity: 2 },
+  { code: 'POKJA_IV', name: 'Pokja IV', type: 'pokja' as const, capacity: 2 },
+] as const;
+
 export const ELIGIBLE_POSITIONS = [
   'Bendahara',
   'Sekretaris',
@@ -10,13 +17,3 @@ export const ELIGIBLE_POSITIONS = [
   'Pokja III',
   'Pokja IV',
 ] as const;
-
-export type EligiblePosition = (typeof ELIGIBLE_POSITIONS)[number];
-
-/**
- * Cek apakah nama jabatan termasuk yang berhak membuat laporan.
- */
-export function isEligiblePosition(positionName: string | null | undefined): boolean {
-  if (!positionName) return false;
-  return ELIGIBLE_POSITIONS.includes(positionName as EligiblePosition);
-}
