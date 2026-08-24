@@ -13,7 +13,7 @@ export type RootStackParamList = {
   AdminPosts: undefined;
   AdminReports: undefined;
   AdminAnnouncements: undefined;
-  AdminAddAnnouncement: { announcementId?: string };
+  AdminAddAnnouncement: { announcementId?: string } | undefined;
   AdminNotifications: undefined;
 
   // User Tabs
