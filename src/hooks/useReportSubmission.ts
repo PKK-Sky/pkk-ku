@@ -7,11 +7,10 @@ import { createReport, createReportMediaBatch, getReportById } from '@services';
 import { uploadCroppedImage } from '@services';
 import type {
   ReportInsertPayload,
-  CroppedImage,
-  SubmissionProgress,
   ReportMediaInsertPayload,
   ReportWithDetails,
 } from '@types';
+import type { CroppedImage, SubmissionProgress } from '@types/form';
 import { saveSubmissionState, clearSubmissionState } from '@utils';
 
 export function useReportSubmission(userId: string) {
