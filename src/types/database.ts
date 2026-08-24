@@ -81,10 +81,12 @@ export type RecipientType = 'admin' | 'ketua' | 'wakil_ketua';
 // TABEL: profiles
 // (skema asli hanya: id, name, role — BUKAN email/full_name/avatar_url)
 // ──────────────────────────────────────────
+export type ProfileRole = 'admin' | 'user';
+
 export interface Profile {
   id: string;
   name: string;
-  role: string;
+  role: ProfileRole;
   created_at: string;
   updated_at: string;
 }
