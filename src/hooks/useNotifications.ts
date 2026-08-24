@@ -7,10 +7,10 @@ import {
   markAllNotificationsRead,
   subscribeToNotifications,
 } from '@services';
-import type { NotificationInboxItem } from '@types';
+import type { NotificationInbox } from '@types';
 
 export function useNotifications(userId: string | null) {
-  const [notifications, setNotifications] = useState<NotificationInboxItem[]>([]);
+  const [notifications, setNotifications] = useState<NotificationInbox[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
