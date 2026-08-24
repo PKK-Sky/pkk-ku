@@ -48,7 +48,7 @@ export default function AdminNotificationsScreen({ navigation }: Props) {
   }, []);
 
   const markAsRead = async (id: string) => {
-    await supabase.from('notification_inbox').update({ is_read: true }).eq('id', id);
+    await supabase.from('notification_inbox').update({ read_at: new Date().toISOString() }).eq('id', id);
     fetchNotifications();
   };
 
@@ -78,7 +78,7 @@ export default function AdminNotificationsScreen({ navigation }: Props) {
         {notifications.map(notif => (
           <TouchableOpacity
             key={notif.id}
-            style={[styles.listItem, !notif.is_read && styles.listItemUnread]}
+            style={[styles.listItem, !notif.read_at && styles.listItemUnread]}
             onPress={() => markAsRead(notif.id)}
           >
             <View style={[styles.listAvatar, { backgroundColor: COLORS.primaryLight }]}>
@@ -92,7 +92,7 @@ export default function AdminNotificationsScreen({ navigation }: Props) {
               <Text style={styles.listTime}>
                 {new Date(notif.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
               </Text>
-              {!notif.is_read && <View style={styles.unreadDot} />}
+              {!notif.read_at && <View style={styles.unreadDot} />}
             </View>
           </TouchableOpacity>
         ))}
