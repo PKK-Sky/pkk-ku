@@ -34,9 +34,6 @@ export type RootStackParamList = {
   ReportCreate: { reportId?: string };
   ReportDetail: { reportId: string };
   ReportPreview: { reportId: string };
-  // UBAH: kunci ini sebelumnya "PdfViewer", diganti agar sinkron dengan
-  // Stack.Screen name="ReportPdfViewer" di navigation/AppNavigator.tsx
-  // dan navigation.navigate('ReportPdfViewer', ...) di ReportDetailScreen.tsx
   ReportPdfViewer: { reportId: string };
 
   // Chat Stack
@@ -61,25 +58,18 @@ export type UserTabParamList = {
 };
 
 export type MemberStatus = 'pending' | 'active' | 'blocked';
+export type RegistrationStatus = MemberStatus;
 export type PositionType = 'leadership' | 'pokja';
 export type ReportStatus = 'sent';
 export type MediaType = 'image' | 'video';
 export type RecipientType = 'admin' | 'ketua' | 'wakil_ketua';
 export type NotificationKind = 'chat_message' | 'report_received' | 'announcement' | 'social_activity' | 'system';
-
-// TAMBAHAN: dipindah dari types/database.ts (yang akan dihapus) — dipakai
-// oleh AuthContext.tsx
 export type ProfileRole = 'admin' | 'user';
-
-// TAMBAHAN: alias eksplisit RegistrationStatus = MemberStatus, dipindah dari
-// types/database.ts (nilai di sana SALAH: 'inactive'/'rejected' tidak pernah
-// ada di constraint asli). Dipakai oleh adminService.ts.
-export type RegistrationStatus = MemberStatus;
 
 export interface Profile {
   id: string;
   name: string;
-  role: 'admin' | 'user';
+  role: ProfileRole;
   created_at: string;
   updated_at: string;
 }
@@ -105,13 +95,6 @@ export interface Member {
   created_at: string;
   updated_at: string;
   position?: Position;
-}
-
-// TAMBAHAN: dipindah dari types/database.ts — dipakai oleh adminService.ts
-// dan authService.ts (member + jabatan + profil sekaligus).
-export interface MemberWithPosition extends Member {
-  position: Position | null;
-  profile: Profile | null;
 }
 
 export interface Announcement {
@@ -207,13 +190,6 @@ export interface ReportRecipient {
   created_at: string;
 }
 
-// TAMBAHAN: dipindah dari types/database.ts — dipakai oleh pdfService.ts,
-// useMyReports.ts, ReportListScreen.tsx, ReportDetailScreen.tsx.
-export interface ReportWithDetails extends Report {
-  media: ReportMedia[];
-  recipients: ReportRecipient[];
-}
-
 export interface ChatConversation {
   id: string;
   direct_key: string;
@@ -251,12 +227,38 @@ export interface NotificationInbox {
   title: string;
   body: string;
   data: Record<string, unknown> | null;
-  // UBAH: sebelumnya "is_read: boolean" — kolom ini TIDAK ADA di database.
-  // Kolom asli tabel notification_inbox adalah "read_at" (timestamptz,
-  // nullable). notificationService.ts & useNotifications.ts sudah query
-  // pakai read_at, jadi tipe ini disesuaikan.
-  read_at: string | null;
   created_at: string;
+  read_at: string | null;
+}
+
+export interface ReportInsertPayload {
+  activity_basis: string;
+  activity_date: string;
+  activity_time: string;
+  activity_place: string;
+  activity_name: string;
+  participants: string;
+  activity_description: string;
+}
+
+export interface ReportMediaInsertPayload {
+  report_id: string;
+  storage_path: string;
+  media_order: number;
+  crop_x: number | null;
+  crop_y: number | null;
+  crop_width: number | null;
+  crop_height: number | null;
+}
+
+export interface ReportWithDetails extends Omit<Report, 'media' | 'recipients'> {
+  media: ReportMedia[];
+  recipients: ReportRecipient[];
+}
+
+export interface MemberWithPosition extends Omit<Member, 'position'> {
+  position: Position | null;
+  profile: Profile | null;
 }
 
 export interface NotificationPreferences {
