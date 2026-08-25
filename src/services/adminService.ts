@@ -216,6 +216,28 @@ async function setMemberStatus(memberId: string, status: RegistrationStatus) {
   return { data: data as MemberWithPosition | null, error };
 }
 
+// ──────────────────────────────────────────
+// PEMBERSIHAN AKUN AKTIVASI YANG NYANGKUT
+// ──────────────────────────────────────────
+
+export interface CleanupPendingActivationsResult {
+  cleaned_count: number;
+  details: Array<{ member_id: string; full_name: string; email: string }>;
+}
+
+/**
+ * Bersihkan anggota berstatus 'pending' yang OTP-nya sudah pernah sukses
+ * diverifikasi (auth.users confirmed) tapi proses aktivasi tidak pernah
+ * selesai (user_id masih null) — akun "nyangkut" yang bikin OTP baru selalu
+ * gagal dengan "Token has expired or is invalid". Admin-only, dijaga di
+ * sisi database (is_admin()). TIDAK PERNAH menyentuh akun admin atau
+ * anggota yang statusnya sudah 'active'/'blocked'.
+ */
+export async function cleanupPendingActivations() {
+  const { data, error } = await supabase.rpc('cleanup_pending_activations');
+  return { data: data as CleanupPendingActivationsResult | null, error };
+}
+
 /**
  * Ambil pengumuman terbaru yang dikelola admin (aktif maupun tidak),
  * memakai policy "admin can read all announcements" (is_admin()).
