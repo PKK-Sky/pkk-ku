@@ -3,6 +3,7 @@ import { ActivityIndicator, Text, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuthContext } from '@context/AuthContext';
+import { usePushRegistration } from '@hooks/usePushRegistration';
 import type { RootStackParamList } from '@types';
 
 // Screens
@@ -38,8 +39,15 @@ import AccessDeniedScreen from '@screens/AccessDeniedScreen';
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function AppNavigator() {
-  const { isAuthenticated, isLoading, isAdmin, isRoleLoading, needsActivation, isActivationStatusLoading } =
+  const { isAuthenticated, isLoading, isAdmin, isRoleLoading, needsActivation, isActivationStatusLoading, user } =
     useAuthContext();
+
+  // Daftarkan Expo push token ke push_devices begitu ada sesi aktif — tanpa
+  // ini tabel push_devices akan selalu kosong dan seluruh pipeline push
+  // notification backend (cron + Edge Function, sudah berfungsi) tidak
+  // pernah punya device tujuan. Admin dan member sama-sama didaftarkan
+  // (admin tetap butuh push untuk mis. laporan baru masuk).
+  usePushRegistration(isAuthenticated ? user?.id ?? null : null);
 
   // Tunggu session, role, DAN status aktivasi selesai dimuat sebelum memutuskan
   // stack mana yang ditampilkan — supaya user tidak sempat "kelihatan" masuk ke
