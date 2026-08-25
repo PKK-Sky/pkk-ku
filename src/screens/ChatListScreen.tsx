@@ -91,11 +91,11 @@ export default function ChatListScreen({ navigation }: Props) {
     }
 
     const otherUserIds = Array.from(new Set((memberRows || []).map(item => item.user_id)));
+    // RLS `members` hanya mengizinkan admin ATAU baris milik diri sendiri — query
+    // langsung ke tabel akan selalu kosong untuk lawan chat. Pakai RPC
+    // get_members_public() (SECURITY DEFINER, field publik saja).
     const { data: memberProfiles } = otherUserIds.length
-      ? await supabase
-          .from('members')
-          .select('user_id, full_name, avatar_url')
-          .in('user_id', otherUserIds)
+      ? await supabase.rpc('get_members_public', { p_user_ids: otherUserIds })
       : { data: [] as Pick<Member, 'user_id' | 'full_name' | 'avatar_url'>[] };
 
     const profilesByUser = new Map(

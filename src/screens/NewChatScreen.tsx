@@ -23,14 +23,31 @@ export default function NewChatScreen({ navigation }: Props) {
     setLoading(true);
     setError(null);
     try {
-      const { data: user } = await supabase.auth.getUser();
-      const { data, error: membersError } = await supabase
-        .from('members')
-        .select('*, position:positions(*)')
-        .eq('registration_status', 'active')
-        .neq('user_id', user.user?.id);
+      // Query langsung ke `members` tidak bisa dipakai di sini: RLS tabel ini
+      // hanya mengizinkan admin ATAU baris milik diri sendiri, jadi user biasa
+      // akan selalu dapat hasil kosong untuk anggota lain. Pakai RPC
+      // get_members_directory() (SECURITY DEFINER) yang mengekspos field
+      // publik saja (nama, avatar, posisi) untuk semua anggota aktif selain
+      // diri sendiri.
+      const { data, error: membersError } = await supabase.rpc('get_members_directory');
       if (membersError) throw membersError;
-      setMembers((data || []).filter(member => !!member.user_id));
+      setMembers(
+        (data || []).map((row: any) => ({
+          id: row.user_id,
+          user_id: row.user_id,
+          full_name: row.full_name,
+          email: null,
+          position_id: '',
+          address: null,
+          avatar_url: row.avatar_url,
+          registration_status: 'active' as const,
+          created_at: '',
+          updated_at: '',
+          position: row.position_name
+            ? { id: '', code: row.position_code, name: row.position_name, type: 'pokja', sort_order: 0, created_at: '' }
+            : undefined,
+        }))
+      );
     } catch (err: any) {
       console.error('[NewChat] gagal memuat anggota:', err);
       setMembers([]);
