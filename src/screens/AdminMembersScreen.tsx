@@ -7,6 +7,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList, Member, Position } from '../types';
 import { COLORS } from '../constants/app';
 import { supabase } from '../lib/supabase';
+import { cleanupPendingActivations } from '../services/adminService';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'AdminMembers'>;
 
@@ -16,6 +17,7 @@ export default function AdminMembersScreen({ navigation }: Props) {
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState<'all' | 'active' | 'pending' | 'blocked'>('all');
   const [refreshing, setRefreshing] = useState(false);
+  const [cleaning, setCleaning] = useState(false);
 
   const fetchMembers = async () => {
     try {
@@ -65,6 +67,37 @@ export default function AdminMembersScreen({ navigation }: Props) {
     ]);
   };
 
+  const handleCleanupPending = async () => {
+    Alert.alert(
+      'Bersihkan Akun Nyangkut',
+      'Ini akan mereset anggota berstatus Pending yang OTP-nya sudah pernah sukses diverifikasi tapi proses aktivasinya tidak pernah selesai. Mereka akan bisa aktivasi ulang dari nol. Akun admin dan anggota yang sudah Aktif/Diblokir TIDAK akan tersentuh.',
+      [
+        { text: 'Batal', style: 'cancel' },
+        {
+          text: 'Bersihkan',
+          style: 'destructive',
+          onPress: async () => {
+            setCleaning(true);
+            const { data, error } = await cleanupPendingActivations();
+            setCleaning(false);
+            if (error) {
+              Alert.alert('Gagal', error.message);
+              return;
+            }
+            const count = data?.cleaned_count ?? 0;
+            Alert.alert(
+              count > 0 ? 'Selesai' : 'Tidak Ada yang Perlu Dibersihkan',
+              count > 0
+                ? `${count} akun berhasil direset: ${data!.details.map((d) => d.full_name).join(', ')}.`
+                : 'Tidak ditemukan akun pending yang nyangkut saat ini.'
+            );
+            fetchMembers();
+          },
+        },
+      ]
+    );
+  };
+
   const filteredMembers = members.filter(m => {
     const matchesSearch =
       m.full_name.toLowerCase().includes(search.toLowerCase()) ||
@@ -108,6 +141,17 @@ export default function AdminMembersScreen({ navigation }: Props) {
           onChangeText={setSearch}
         />
       </View>
+
+      {/* Bersihkan akun pending yang nyangkut */}
+      <TouchableOpacity
+        style={styles.cleanupBtn}
+        onPress={handleCleanupPending}
+        disabled={cleaning}
+      >
+        <Text style={styles.cleanupBtnText}>
+          {cleaning ? 'Membersihkan...' : '🧹 Bersihkan Akun Pending yang Nyangkut'}
+        </Text>
+      </TouchableOpacity>
 
       {/* Tabs */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabsContainer}>
@@ -213,6 +257,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     backgroundColor: COLORS.background,
   },
+  cleanupBtn: {
+    marginHorizontal: 12,
+    marginBottom: 8,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    alignItems: 'center',
+  },
+  cleanupBtnText: { fontSize: 12.5, fontWeight: '600', color: '#92400E' },
   tabsContainer: { backgroundColor: COLORS.white, maxHeight: 50 },
   tabs: {
     flexDirection: 'row',
