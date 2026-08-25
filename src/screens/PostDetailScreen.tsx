@@ -1,4 +1,3 @@
-cat > /home/claude/pkk-ku-v3/pkk-ku-main/src/screens/PostDetailScreen.tsx << 'PDEOF'
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -240,5 +239,3 @@ const styles = StyleSheet.create({
   primaryButton: { backgroundColor: COLORS.primary, paddingHorizontal: 18, paddingVertical: 11, borderRadius: 12 },
   primaryButtonText: { color: COLORS.white, fontWeight: '700' },
 });
-PDEOF
-echo done
