@@ -9,7 +9,7 @@ import type { RootStackParamList } from '@types';
 import LoginScreen from '@screens/LoginScreen';
 import AdminLoginScreen from '@screens/AdminLoginScreen';
 import MemberActivationScreen from '@screens/MemberActivationScreen';
-import HomeScreen from '@screens/HomeScreen';
+import HomeScreen from '@screens/BerandaScreen';
 import FeedScreen from '@screens/FeedScreen';
 import CreatePostScreen from '@screens/CreatePostScreen';
 import NewChatScreen from '@screens/NewChatScreen';
