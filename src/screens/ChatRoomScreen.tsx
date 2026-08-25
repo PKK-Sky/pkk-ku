@@ -25,8 +25,10 @@ export default function ChatRoomScreen({ navigation, route }: Props) {
   const [currentUserId, setCurrentUserId] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const loadMessages = useCallback(async () => {
+    setError(null);
     const { data: userData } = await supabase.auth.getUser();
     const userId = userData.user?.id;
     if (!userId) {
@@ -42,7 +44,13 @@ export default function ChatRoomScreen({ navigation, route }: Props) {
       .is('deleted_at', null)
       .order('created_at', { ascending: false });
 
-    if (!error) setMessages((data || []) as ChatMessage[]);
+    if (error) {
+      console.error('[ChatRoom] gagal memuat pesan:', error.message);
+      setMessages([]);
+      setError('Pesan gagal dimuat. Periksa koneksi lalu coba lagi.');
+    } else {
+      setMessages((data || []) as ChatMessage[]);
+    }
     setLoading(false);
   }, [conversationId]);
 
@@ -150,6 +158,13 @@ export default function ChatRoomScreen({ navigation, route }: Props) {
         <View style={styles.center}>
           <ActivityIndicator color={COLORS.primary} />
         </View>
+      ) : error ? (
+        <View style={styles.center}>
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={() => void loadMessages()}>
+            <Text style={styles.retryText}>Coba Lagi</Text>
+          </TouchableOpacity>
+        </View>
       ) : (
         <FlatList
           data={messages}
@@ -208,6 +223,9 @@ const styles = StyleSheet.create({
   title: { fontSize: 17, fontWeight: '700', color: COLORS.text },
   subtitle: { fontSize: 12, color: COLORS.textMuted, marginTop: 2 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  errorText: { color: COLORS.textSecondary, textAlign: 'center', paddingHorizontal: 28, lineHeight: 20 },
+  retryButton: { marginTop: 14, paddingHorizontal: 18, paddingVertical: 10, borderRadius: 12, backgroundColor: COLORS.primaryLight },
+  retryText: { color: COLORS.primary, fontWeight: '700' },
   messageList: { padding: 16, flexGrow: 1, justifyContent: 'flex-start' },
   messageRow: { marginVertical: 4, flexDirection: 'row' },
   messageRowMine: { justifyContent: 'flex-end' },

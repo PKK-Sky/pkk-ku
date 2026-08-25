@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert,
+  ActivityIndicator, View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList, Member } from '../types';
@@ -12,19 +12,32 @@ type Props = NativeStackScreenProps<RootStackParamList, 'NewChat'>;
 export default function NewChatScreen({ navigation }: Props) {
   const [members, setMembers] = useState<Member[]>([]);
   const [search, setSearch] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchMembers();
   }, []);
 
   const fetchMembers = async () => {
-    const { data: user } = await supabase.auth.getUser();
-    const { data } = await supabase
-      .from('members')
-      .select('*, position:positions(*)')
-      .eq('registration_status', 'active')
-      .neq('user_id', user.user?.id);
-    setMembers(data || []);
+    setLoading(true);
+    setError(null);
+    try {
+      const { data: user } = await supabase.auth.getUser();
+      const { data, error: membersError } = await supabase
+        .from('members')
+        .select('*, position:positions(*)')
+        .eq('registration_status', 'active')
+        .neq('user_id', user.user?.id);
+      if (membersError) throw membersError;
+      setMembers((data || []).filter(member => !!member.user_id));
+    } catch (err: any) {
+      console.error('[NewChat] gagal memuat anggota:', err);
+      setMembers([]);
+      setError('Daftar anggota gagal dimuat. Periksa koneksi lalu coba lagi.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const startChat = async (otherUserId: string, name: string) => {
@@ -71,7 +84,16 @@ export default function NewChatScreen({ navigation }: Props) {
       </View>
 
       <ScrollView>
-        {filtered.map(m => (
+        {loading ? (
+          <View style={styles.empty}><ActivityIndicator color={COLORS.primary} /></View>
+        ) : error ? (
+          <View style={styles.empty}>
+            <Text style={styles.emptyText}>{error}</Text>
+            <TouchableOpacity style={styles.retryButton} onPress={() => void fetchMembers()}>
+              <Text style={styles.retryText}>Coba Lagi</Text>
+            </TouchableOpacity>
+          </View>
+        ) : filtered.map(m => (
           <TouchableOpacity
             key={m.id}
             style={styles.listItem}
@@ -128,4 +150,6 @@ const styles = StyleSheet.create({
   listSubtitle: { fontSize: 13, color: COLORS.textSecondary, marginTop: 2 },
   empty: { padding: 40, alignItems: 'center' },
   emptyText: { color: COLORS.textMuted, fontSize: 14 },
+  retryButton: { marginTop: 14, paddingHorizontal: 18, paddingVertical: 10, borderRadius: 12, backgroundColor: COLORS.primaryLight },
+  retryText: { color: COLORS.primary, fontWeight: '700' },
 });

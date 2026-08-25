@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useFocusEffect } from '@react-navigation/native';
 import { RootStackParamList, ChatConversation, Member } from '../types';
 import { COLORS } from '../constants/app';
 import { supabase } from '../lib/supabase';
@@ -26,8 +27,10 @@ export default function ChatListScreen({ navigation }: Props) {
   const [conversations, setConversations] = useState<ConversationListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const loadConversations = useCallback(async () => {
+    setError(null);
     const { data: userData } = await supabase.auth.getUser();
     const userId = userData.user?.id;
     if (!userId) {
@@ -43,6 +46,7 @@ export default function ChatListScreen({ navigation }: Props) {
     if (membershipsError) {
       console.error('[ChatList] gagal memuat membership:', membershipsError.message);
       setConversations([]);
+      setError('Percakapan gagal dimuat. Periksa koneksi lalu coba lagi.');
       setLoading(false);
       return;
     }
@@ -67,6 +71,7 @@ export default function ChatListScreen({ navigation }: Props) {
     if (conversationsError) {
       console.error('[ChatList] gagal memuat percakapan:', conversationsError.message);
       setConversations([]);
+      setError('Percakapan gagal dimuat. Periksa koneksi lalu coba lagi.');
       setLoading(false);
       return;
     }
@@ -80,6 +85,7 @@ export default function ChatListScreen({ navigation }: Props) {
     if (membersError) {
       console.error('[ChatList] gagal memuat lawan bicara:', membersError.message);
       setConversations([]);
+      setError('Daftar anggota gagal dimuat. Coba lagi.');
       setLoading(false);
       return;
     }
@@ -115,8 +121,26 @@ export default function ChatListScreen({ navigation }: Props) {
     setLoading(false);
   }, []);
 
+  useFocusEffect(
+    useCallback(() => {
+      void loadConversations();
+    }, [loadConversations]),
+  );
+
   useEffect(() => {
-    loadConversations();
+    const channel = supabase
+      .channel('chat-list-refresh')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, () => {
+        void loadConversations();
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'chat_conversations' }, () => {
+        void loadConversations();
+      })
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
   }, [loadConversations]);
 
   const onRefresh = useCallback(async () => {
@@ -187,6 +211,14 @@ export default function ChatListScreen({ navigation }: Props) {
 
       {loading ? (
         <View style={styles.center}><ActivityIndicator color={COLORS.primary} /></View>
+      ) : error ? (
+        <View style={styles.empty}>
+          <Text style={styles.emptyTitle}>Percakapan tidak tersedia</Text>
+          <Text style={styles.emptyText}>{error}</Text>
+          <TouchableOpacity style={styles.primaryButton} onPress={() => void loadConversations()}>
+            <Text style={styles.primaryButtonText}>Coba Lagi</Text>
+          </TouchableOpacity>
+        </View>
       ) : (
         <FlatList
           data={conversations}
