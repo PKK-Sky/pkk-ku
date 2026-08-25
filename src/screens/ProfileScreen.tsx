@@ -1,4 +1,3 @@
-cat > /home/claude/pkk-ku-v3/pkk-ku-main/src/screens/ProfileScreen.tsx << 'PROFEOF'
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Modal, TextInput, KeyboardAvoidingView, Platform,
@@ -256,5 +255,3 @@ const styles = StyleSheet.create({
   modalSaveBtn: { flex: 1, padding: 13, borderRadius: 12, alignItems: 'center', backgroundColor: COLORS.primary },
   modalSaveText: { color: COLORS.white, fontWeight: '700' },
 });
-PROFEOF
-echo done
