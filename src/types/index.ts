@@ -4,7 +4,6 @@ export type RootStackParamList = {
   Login: undefined;
   AdminLogin: undefined;
   MemberActivation: undefined;
-  SetPassword: { phone: string };
 
   // Admin
   AdminDashboard: undefined;
@@ -87,7 +86,7 @@ export interface Member {
   id: string;
   user_id: string | null;
   full_name: string;
-  phone: string;
+  email: string | null;
   position_id: string;
   address: string | null;
   avatar_url: string | null;
