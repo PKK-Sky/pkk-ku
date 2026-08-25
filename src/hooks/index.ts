@@ -5,3 +5,4 @@ export * from './useImagePicker';
 export * from './useMyReports';
 export * from './useAnnouncements';
 export * from './useNotifications';
+export * from './usePushRegistration';
