@@ -1,36 +1,51 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   KeyboardAvoidingView, Platform, Alert, Image,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types';
 import { COLORS } from '../constants/app';
-import { supabase } from '../lib/supabase';
+import { useAuth } from '@hooks';
+import {
+  saveRememberedEmail,
+  getRememberedEmail,
+  clearRememberedEmail,
+} from '@utils/storage';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
 export default function LoginScreen({ navigation }: Props) {
-  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  const { loginWithMemberEmail, isLoading } = useAuth();
+
+  useEffect(() => {
+    getRememberedEmail().then(saved => {
+      if (saved) {
+        setEmail(saved);
+        setRememberMe(true);
+      }
+    });
+  }, []);
 
   const handleMemberLogin = async () => {
-    if (!phone.trim() || !password.trim()) {
-      Alert.alert('Error', 'Nomor HP dan password wajib diisi');
+    if (!email.trim() || !password.trim()) {
+      Alert.alert('Error', 'Email dan password wajib diisi');
       return;
     }
-    setLoading(true);
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        phone: phone.trim(),
-        password: password.trim(),
-      });
-      if (error) throw error;
-    } catch (err: any) {
-      Alert.alert('Login Gagal', err.message || 'Terjadi kesalahan');
-    } finally {
-      setLoading(false);
+    const result = await loginWithMemberEmail(email, password);
+    if (!result.success) {
+      Alert.alert('Login Gagal', result.error || 'Terjadi kesalahan');
+      return;
+    }
+    if (rememberMe) {
+      await saveRememberedEmail(email.trim().toLowerCase());
+    } else {
+      await clearRememberedEmail();
     }
   };
 
@@ -60,35 +75,59 @@ export default function LoginScreen({ navigation }: Props) {
 
           <View style={styles.form}>
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Nomor HP</Text>
+              <Text style={styles.inputLabel}>Email</Text>
               <TextInput
                 style={styles.input}
-                placeholder="08xxxxxxxxxx"
-                keyboardType="phone-pad"
-                value={phone}
-                onChangeText={setPhone}
+                placeholder="nama@email.com"
+                keyboardType="email-address"
+                value={email}
+                onChangeText={setEmail}
                 autoCapitalize="none"
+                autoCorrect={false}
               />
             </View>
 
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Password</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Masukkan password"
-                secureTextEntry
-                value={password}
-                onChangeText={setPassword}
-              />
+              <View style={styles.passwordRow}>
+                <TextInput
+                  style={styles.passwordInput}
+                  placeholder="Masukkan password"
+                  secureTextEntry={!showPassword}
+                  value={password}
+                  onChangeText={setPassword}
+                />
+                <TouchableOpacity
+                  onPress={() => setShowPassword(prev => !prev)}
+                  style={styles.eyeBtn}
+                >
+                  <Ionicons
+                    name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                    size={20}
+                    color={COLORS.textSecondary}
+                  />
+                </TouchableOpacity>
+              </View>
             </View>
 
             <TouchableOpacity
-              style={[styles.btnPrimary, loading && styles.btnDisabled]}
+              style={styles.rememberRow}
+              onPress={() => setRememberMe(prev => !prev)}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
+                {rememberMe && <Ionicons name="checkmark" size={14} color={COLORS.white} />}
+              </View>
+              <Text style={styles.rememberText}>Ingat Saya</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.btnPrimary, isLoading && styles.btnDisabled]}
               onPress={handleMemberLogin}
-              disabled={loading}
+              disabled={isLoading}
             >
               <Text style={styles.btnPrimaryText}>
-                {loading ? 'Memuat...' : 'Masuk Sebagai Anggota'}
+                {isLoading ? 'Memuat...' : 'Masuk Sebagai Anggota'}
               </Text>
             </TouchableOpacity>
 
@@ -162,6 +201,46 @@ const styles = StyleSheet.create({
     fontSize: 15,
     backgroundColor: COLORS.white,
   },
+  passwordRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+    borderRadius: 12,
+    backgroundColor: COLORS.white,
+  },
+  passwordInput: {
+    flex: 1,
+    padding: 14,
+    fontSize: 15,
+  },
+  eyeBtn: {
+    paddingHorizontal: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  rememberRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    marginTop: 2,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 5,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+  },
+  checkboxChecked: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  rememberText: { fontSize: 13, color: COLORS.textSecondary, fontWeight: '500' },
   btnPrimary: {
     width: '100%',
     padding: 14,
