@@ -1,3 +1,20 @@
+
+
+pkk-ku-main (7).zip
+Arsip Zip
+Run yarn tsc --noEmit
+yarn run v1.22.22
+$ /home/runner/work/pkk-ku/pkk-ku/node_modules/.bin/tsc --noEmit
+Error: src/screens/NotificationsScreen.tsx(120,13): error TS17002: Expected corresponding JSX closing tag for 'TouchableOpacity'.
+error Command failed with exit code 2.
+info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command.
+Error: Process completed with exit code 2.
+22s......bantu per aiki
+
+Kode utuh NotificationsScreen.tsx cukup panjang (±8 KB), jadi agar tidak terpotong oleh batas chat, saya kirim dalam 2 bagian.
+
+Saya mulai dari Bagian 1/2 (copy dulu, nanti lanjut Bagian 2/2):
+
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Switch,
@@ -15,6 +32,7 @@ export default function NotificationsScreen({ navigation }: Props) {
   const [preferences, setPreferences] = useState<NotificationPreferences | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const { user } = useAuthContext();
+
   const {
     notifications,
     isLoading,
@@ -28,6 +46,7 @@ export default function NotificationsScreen({ navigation }: Props) {
       setPreferences(null);
       return;
     }
+
     supabase
       .from('notification_preferences')
       .select('*')
@@ -45,7 +64,6 @@ export default function NotificationsScreen({ navigation }: Props) {
     setRefreshing(false);
   }, [refetch]);
 
-  // Membuka layar berarti user sudah melihat inbox sistem: badge langsung hilang.
   useEffect(() => {
     if (!isLoading && notifications.some(item => !item.read_at)) {
       void markAllSystemRead();
@@ -54,26 +72,35 @@ export default function NotificationsScreen({ navigation }: Props) {
 
   const openNotification = async (notification: NotificationInbox) => {
     if (!notification.read_at) await markRead(notification.id);
+
     const data = notification.data || {};
     const reportId = typeof data.reportId === 'string' ? data.reportId : null;
+
     if (reportId || notification.kind === 'report_received') {
       if (reportId) navigation.navigate('ReportDetail', { reportId });
       return;
     }
-    if (notification.kind === 'announcement') navigation.navigate('Announcements');
+
+    if (notification.kind === 'announcement') {
+      navigation.navigate('Announcements');
+    }
   };
 
   const togglePref = async (key: keyof NotificationPreferences) => {
     if (!preferences || !user?.id) return;
+
     const newValue = !preferences[key];
+
     const { error } = await supabase
       .from('notification_preferences')
       .update({ [key]: newValue })
       .eq('user_id', user.id);
+
     if (error) {
       console.error('[Notifications] gagal menyimpan preferensi:', error.message);
       return;
     }
+
     setPreferences({ ...preferences, [key]: newValue });
   };
 
@@ -90,74 +117,172 @@ export default function NotificationsScreen({ navigation }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.topbar}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.topbarIcon}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.topbarIcon}
+        >
           <Text style={styles.topbarIconText}>←</Text>
         </TouchableOpacity>
+
         <Text style={styles.topbarTitle}>Notifikasi</Text>
+
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
+      <ScrollView
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
         {isLoading ? (
-          <View style={styles.center}><Text style={styles.emptyText}>Memuat notifikasi...</Text></View>
-        ) : notifications.length === 0 ? (
-          <View style={styles.empty}><Text style={styles.emptyTitle}>Belum ada notifikasi sistem</Text><Text style={styles.emptyText}>Pembaruan, pengumuman, dan status laporan akan muncul di sini.</Text></View>
-        ) : notifications.map(notif => (
-          <TouchableOpacity key={notif.id} onPress={() => openNotification(notif)} style={[styles.listItem, !notif.read_at && styles.listItemUnread]}>
-            <View style={[styles.listAvatar, { backgroundColor: COLORS.primaryLight }]}>
-              <Text style={styles.listAvatarText}>{getIcon(notif.kind)}</Text>
-            </View>
-            <View style={styles.listContent}>
-              <Text style={styles.listTitle}>{notif.title}</Text>
-              <Text style={styles.listSubtitle} numberOfLines={2}>{notif.body}</Text>
-            </View>
-            <View style={styles.listMeta}>
-              <Text style={styles.listTime}>
-                {new Date(notif.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-              </Text>
-              {!notif.read_at && <View style={styles.unreadDot} />}
-            </View>
+          <View style={styles.center}>
+            <Text style={styles.emptyText}>Memuat notifikasi...</Text>
           </View>
-        ))}
+        ) : notifications.length === 0 ? (
+          <View style={styles.empty}>
+            <Text style={styles.emptyTitle}>
+              Belum ada notifikasi sistem
+            </Text>
+            <Text style={styles.emptyText}>
+              Pembaruan, pengumuman, dan status laporan akan muncul di sini.
+            </Text>
+          </View>
+        ) : (
+          notifications.map(notif => (
+            <TouchableOpacity
+              key={notif.id}
+              onPress={() => openNotification(notif)}
+              style={[
+                styles.listItem,
+                !notif.read_at && styles.listItemUnread
+              ]}
+            >
+              <View
+                style={[
+                  styles.listAvatar,
+                  { backgroundColor: COLORS.primaryLight }
+                ]}
+              >
+                <Text style={styles.listAvatarText}>
+                  {getIcon(notif.kind)}
+                </Text>
+              </View>
 
-        {notifications.length > 0 && (
-          <TouchableOpacity style={styles.btnGhost} onPress={markAllSystemRead}>
-            <Text style={styles.btnGhostText}>Tandai Semua Dibaca</Text>
-          </TouchableOpacity>
+              <View style={styles.listContent}>
+                <Text style={styles.listTitle}>
+                  {notif.title}
+                </Text>
+
+                <Text
+                  style={styles.listSubtitle}
+                  numberOfLines={2}
+                >
+                  {notif.body}
+                </Text>
+              </View>
+
+              <View style={styles.listMeta}>
+                <Text style={styles.listTime}>
+                  {new Date(notif.created_at).toLocaleTimeString(
+                    'id-ID',
+                    {
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    }
+                  )}
+                </Text>
+
+                {!notif.read_at && (
+                  <View style={styles.unreadDot} />
+                )}
+              </View>
+            </TouchableOpacity>
+          ))
         )}
+Lanjutkan dengan Bagian 2/2 setelah ini.
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>PENGATURAN</Text>
-          {preferences && (
-            <>
-              <ToggleRow label="Notifikasi Laporan" desc="Status laporan" value={preferences.report_received} onToggle={() => togglePref('report_received')} />
-              <ToggleRow label="Notifikasi Pengumuman" desc="Pengumuman baru dari admin" value={preferences.announcements} onToggle={() => togglePref('announcements')} />
-            </>
-          )}
-        </View>
 
-        <View style={{ height: 40 }} />
-      </ScrollView>
-    </View>
-  );
-}
+fike utuh nya saja ...sial download
 
-function ToggleRow({ label, desc, value, onToggle }: { label: string; desc: string; value: boolean; onToggle: () => void }) {
-  return (
-    <View style={styles.toggleCard}>
-      <View>
-        <Text style={styles.toggleLabel}>{label}</Text>
-        <Text style={styles.toggleDesc}>{desc}</Text>
-      </View>
-      <Switch value={value} onValueChange={onToggle} trackColor={{ false: COLORS.border, true: COLORS.primary }} thumbColor={COLORS.white} />
-    </View>
-  );
-}
+Berikut file utuh yang sudah diperbaiki (siap download):
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  topbar: {
-    backgroundColor: COLORS.white, padding: 12, flexDirection: 'row',
+Download NotificationsScreen.tsx (fixed)
+
+File yang diubah hanya:
+
+src/screens/NotificationsScreen.tsx
+Silakan replace file lama dengan file ini, lalu jalankan:
+
+yarn tsc --noEmit
+
+NotificationsScreen.tsx
+Kode
+
+
+tidak dapat diunduh
+
+Siap. Saya buat ulang file langsung sebagai .tsx, bukan ZIP.
+
+👉 Download NotificationsScreen-fixed.tsx
+
+Ini adalah file utuh NotificationsScreen.tsx yang sudah diperbaiki. 
+
+
+NotificationsScreen-fixed.tsx
+Kode
+
+
+Tidak ada file yang dipilih
+NotificationsScreen-fixed.tsx
+
+
+161
+162
+163
+164
+165
+166
+167
+168
+169
+170
+171
+172
+173
+174
+175
+176
+177
+178
+179
+180
+181
+182
+183
+184
+185
+186
+187
+188
+189
+190
+191
+192
+193
+194
+195
+196
+197
+198
+199
+200
+201
+202
+203
+204
+205
+206
+207
     alignItems: 'center', justifyContent: 'space-between',
     borderBottomWidth: 1, borderBottomColor: COLORS.border,
   },
@@ -204,3 +329,4 @@ const styles = StyleSheet.create({
   toggleLabel: { fontWeight: '600' },
   toggleDesc: { fontSize: 12, color: COLORS.textMuted, marginTop: 2 },
 });
+
