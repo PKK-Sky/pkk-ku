@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet,
+  Image, View, Text, TextInput, TouchableOpacity, StyleSheet,
   KeyboardAvoidingView, Platform, ScrollView, Alert,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -65,9 +65,10 @@ export default function CreatePostScreen({ navigation }: Props) {
         const response = await fetch(file.uri);
         const blob = await response.blob();
 
-        await supabase.storage.from('post-media').upload(path, blob, {
+         const { error: uploadError } = await supabase.storage.from('post-media').upload(path, blob, {
           contentType: file.type === 'video' ? 'video/mp4' : 'image/jpeg',
         });
+         if (uploadError) throw uploadError;
 
         await supabase.from('post_media').insert({
           post_id: post.id,
@@ -122,11 +123,15 @@ export default function CreatePostScreen({ navigation }: Props) {
             textAlignVertical="top"
           />
 
-          {media.length > 0 && (
+           {media.length > 0 && (
             <ScrollView horizontal style={styles.mediaPreview}>
               {media.map((m, i) => (
                 <View key={i} style={styles.mediaItem}>
-                  <Text style={styles.mediaText}>{m.type === 'video' ? '🎥' : '🖼️'}</Text>
+                   {m.type === 'video' ? (
+                     <Text style={styles.mediaText}>🎥</Text>
+                   ) : (
+                     <Image source={{ uri: m.uri }} style={styles.mediaThumbnail} resizeMode="cover" />
+                   )}
                   <TouchableOpacity style={styles.removeMedia} onPress={() => removeMedia(i)}>
                     <Text style={styles.removeMediaText}>✕</Text>
                   </TouchableOpacity>
@@ -208,6 +213,7 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   mediaText: { fontSize: 24 },
+  mediaThumbnail: { width: '100%', height: '100%', borderRadius: 12 },
   removeMedia: {
     position: 'absolute',
     top: -4,

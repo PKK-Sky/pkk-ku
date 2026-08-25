@@ -1,13 +1,16 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  ActivityIndicator, View, Text, StyleSheet, ScrollView, TouchableOpacity,
   RefreshControl, Share,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList, Post } from '../types';
+import { RootStackParamList, Post, PostMedia } from '../types';
 import { COLORS } from '../constants/app';
 import { supabase } from '../lib/supabase';
 import { getMembersByUserIds } from '@services';
+import { Image } from 'react-native';
+import { Video, ResizeMode } from 'expo-av';
+import { useFocusEffect } from '@react-navigation/native';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Feed'>;
 
@@ -17,8 +20,11 @@ export default function FeedScreen({ navigation }: Props) {
   const [posts, setPosts] = useState<PostWithAuthor[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchPosts = async () => {
+    setError(null);
     try {
       const { data: user } = await supabase.auth.getUser();
       setCurrentUserId(user.user?.id || '');
@@ -61,12 +67,17 @@ export default function FeedScreen({ navigation }: Props) {
       setPosts(postsWithStatus);
     } catch (err) {
       console.error(err);
+      setError('Feed gagal dimuat. Periksa koneksi lalu coba lagi.');
+    } finally {
+      setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchPosts();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      void fetchPosts();
+    }, []),
+  );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -117,6 +128,32 @@ export default function FeedScreen({ navigation }: Props) {
     return `${Math.floor(diff / 86400)} h`;
   };
 
+  const renderMedia = (media: PostMedia) => {
+    const uri = supabase.storage.from('post-media').getPublicUrl(media.storage_path).data.publicUrl;
+    if (media.media_type === 'video') {
+      return (
+        <Video
+          key={media.id}
+          source={{ uri }}
+          style={styles.mediaAsset}
+          useNativeControls
+          resizeMode={ResizeMode.CONTAIN}
+          isLooping={false}
+        />
+      );
+    }
+    return (
+      <Image
+        key={media.id}
+        source={{ uri }}
+        style={styles.mediaAsset}
+        resizeMode="cover"
+        accessible
+        accessibilityLabel="Media postingan"
+      />
+    );
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.topbar}>
@@ -132,7 +169,16 @@ export default function FeedScreen({ navigation }: Props) {
       <ScrollView
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        {posts.map(post => (
+        {loading ? (
+          <View style={styles.empty}><ActivityIndicator color={COLORS.primary} /></View>
+        ) : error ? (
+          <View style={styles.empty}>
+            <Text style={styles.emptyText}>{error}</Text>
+            <TouchableOpacity style={styles.emptyBtn} onPress={() => void fetchPosts()}>
+              <Text style={styles.emptyBtnText}>Coba Lagi</Text>
+            </TouchableOpacity>
+          </View>
+        ) : posts.map(post => (
           <View key={post.id} style={styles.postCard}>
             <View style={styles.postHeader}>
               <View style={styles.postAvatar}>
@@ -147,12 +193,15 @@ export default function FeedScreen({ navigation }: Props) {
             </View>
 
             {post.media && post.media.length > 0 && (
-              <View style={styles.postMedia}>
-                <Text style={styles.postMediaText}>🖼️ {post.media.length} media</Text>
-              </View>
+              <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} style={styles.postMedia}>
+                {post.media
+                  .slice()
+                  .sort((a, b) => a.media_order - b.media_order)
+                  .map(renderMedia)}
+              </ScrollView>
             )}
 
-            <Text style={styles.postCaption}>{post.content}</Text>
+            {post.content ? <Text style={styles.postCaption}>{post.content}</Text> : null}
 
             <View style={styles.postActions}>
               <TouchableOpacity onPress={() => toggleLike(post.id, !!post.is_liked)}>
@@ -240,10 +289,12 @@ const styles = StyleSheet.create({
     width: '100%',
     aspectRatio: 4 / 3,
     backgroundColor: COLORS.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
-  postMediaText: { color: COLORS.textMuted, fontSize: 14 },
+  mediaAsset: {
+    width: 360,
+    height: '100%',
+    backgroundColor: '#111827',
+  },
   postCaption: { paddingHorizontal: 16, paddingVertical: 10, fontSize: 14, lineHeight: 20 },
   postActions: {
     flexDirection: 'row',

@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { Video, ResizeMode } from 'expo-av';
 import { RootStackParamList, Post, PostComment } from '../types';
 import { COLORS } from '../constants/app';
 import { supabase } from '../lib/supabase';
@@ -135,14 +136,20 @@ export default function PostDetailScreen({ navigation, route }: Props) {
               </View>
             </View>
             {post.content ? <Text style={styles.postContent}>{post.content}</Text> : null}
-            {post.media?.map(media => (
-              <Image
-                key={media.id}
-                source={{ uri: getPublicMediaUrl('post-media', media.storage_path) }}
-                style={styles.media}
-                resizeMode="cover"
-              />
-            ))}
+             {post.media?.map(media => {
+               const uri = getPublicMediaUrl('post-media', media.storage_path);
+               return media.media_type === 'video' ? (
+                 <Video
+                   key={media.id}
+                   source={{ uri }}
+                   style={styles.media}
+                   useNativeControls
+                   resizeMode={ResizeMode.CONTAIN}
+                 />
+               ) : (
+                 <Image key={media.id} source={{ uri }} style={styles.media} resizeMode="cover" />
+               );
+             })}
             <Text style={styles.commentHeading}>Komentar ({comments.length})</Text>
           </View>
         }
