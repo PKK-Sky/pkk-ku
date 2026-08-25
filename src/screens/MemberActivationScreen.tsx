@@ -136,8 +136,8 @@ export default function MemberActivationScreen({ navigation }: Props) {
 
   // Step 3: Verifikasi OTP
   const handleVerifyOtp = async () => {
-    if (otp.length !== 6) {
-      Alert.alert('Error', 'Masukkan 6 digit kode OTP');
+    if (otp.length !== 8) {
+      Alert.alert('Error', 'Masukkan 8 digit kode OTP');
       return;
     }
     setLoading(true);
@@ -324,13 +324,13 @@ export default function MemberActivationScreen({ navigation }: Props) {
         {step === 'otp' && (
           <View style={styles.form}>
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Kode OTP (6 digit)</Text>
+              <Text style={styles.inputLabel}>Kode OTP (8 digit)</Text>
               <TextInput
                 ref={otpRef}
                 style={[styles.input, styles.otpInput]}
                 placeholder="______"
                 keyboardType="number-pad"
-                maxLength={6}
+                maxLength={8}
                 value={otp}
                 onChangeText={setOtp}
                 textAlign="center"
@@ -494,7 +494,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  otpInput: { fontSize: 24, letterSpacing: 12, fontWeight: '700' },
+  otpInput: { fontSize: 20, letterSpacing: 6, fontWeight: '700', textAlign: 'center' },
   btnPrimary: {
     width: '100%',
     padding: 14,
