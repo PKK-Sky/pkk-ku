@@ -45,6 +45,10 @@ export const STORAGE_CONFIG = {
     `${userId}/reports/${reportId}/${order}.jpg`,
   POST_MEDIA_PATH: (userId: string, postId: string, filename: string) =>
     `${userId}/posts/${postId}/${filename}`,
+  // Avatar disimpan di bucket post-media (public) supaya cocok dengan policy RLS
+  // yang sudah ada: folder pertama harus = auth.uid().
+  AVATAR_PATH: (userId: string, filename: string) =>
+    `${userId}/avatar/${filename}`,
   CHAT_MEDIA_PATH: (userId: string, conversationId: string, filename: string) =>
     `${userId}/chat/${conversationId}/${filename}`,
 } as const;
