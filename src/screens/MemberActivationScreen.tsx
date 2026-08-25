@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   KeyboardAvoidingView, Platform, ScrollView, Alert,
@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types';
 import { COLORS } from '../constants/app';
+import { useAuthContext } from '../context/AuthContext';
 import {
   findMembersByName,
   claimMemberEmail,
@@ -24,6 +25,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'MemberActivation'>;
 type Step = 'name' | 'candidates' | 'email' | 'otp' | 'complete';
 
 export default function MemberActivationScreen({ navigation }: Props) {
+  const { user, needsActivation } = useAuthContext();
   const [step, setStep] = useState<Step>('name');
   const [loading, setLoading] = useState(false);
 
@@ -51,6 +53,21 @@ export default function MemberActivationScreen({ navigation }: Props) {
   const stepIndex = (['name', 'email', 'otp', 'complete'] as const).indexOf(
     step === 'candidates' ? 'name' : step
   );
+
+  // RESUME: kalau device sudah punya session aktif untuk akun ini (artinya
+  // OTP pernah terverifikasi sukses di percobaan sebelumnya, tapi proses
+  // sempat terputus sebelum sampai langkah "complete" — misal app ditutup),
+  // langsung lompat ke step "complete" pakai email dari session tsb.
+  // Ini mencegah user mengulang name->email->otp lagi, yang akan selalu
+  // gagal dengan "Token has expired or is invalid" karena email tsb sudah
+  // confirmed duluan di Supabase Auth.
+  useEffect(() => {
+    if (needsActivation && user?.email && step !== 'complete') {
+      setEmail(user.email);
+      setStep('complete');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [needsActivation, user?.email]);
 
   const selectCandidate = (candidate: MemberNameCandidate) => {
     setMemberId(candidate.id);
