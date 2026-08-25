@@ -68,7 +68,7 @@ export default function AdminMembersScreen({ navigation }: Props) {
   const filteredMembers = members.filter(m => {
     const matchesSearch =
       m.full_name.toLowerCase().includes(search.toLowerCase()) ||
-      m.phone.includes(search) ||
+      (m.email || '').toLowerCase().includes(search.toLowerCase()) ||
       (m.position?.name || '').toLowerCase().includes(search.toLowerCase());
     const matchesTab = activeTab === 'all' || m.registration_status === activeTab;
     return matchesSearch && matchesTab;
@@ -141,7 +141,7 @@ export default function AdminMembersScreen({ navigation }: Props) {
               <View style={styles.listContent}>
                 <Text style={styles.listTitle}>{member.full_name}</Text>
                 <Text style={styles.listSubtitle}>
-                  {member.position?.name || 'Jabatan tidak diketahui'} · {member.phone}
+                  {member.position?.name || 'Jabatan tidak diketahui'} · {member.email || 'Belum aktivasi'}
                 </Text>
               </View>
               <View style={styles.listMeta}>
