@@ -1,16 +1,22 @@
+cat > /home/claude/pkk-ku-v3/pkk-ku-main/src/screens/ProfileScreen.tsx << 'PROFEOF'
 import React, { useEffect, useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Modal, TextInput, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList, Member } from '../types';
 import { COLORS } from '../constants/app';
 import { supabase } from '../lib/supabase';
+import { setAccountPassword } from '@services';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Profile'>;
 
 export default function ProfileScreen({ navigation }: Props) {
   const [member, setMember] = useState<Member | null>(null);
+  const [passwordModalVisible, setPasswordModalVisible] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [savingPassword, setSavingPassword] = useState(false);
 
   useEffect(() => {
     fetchProfile();
@@ -38,6 +44,32 @@ export default function ProfileScreen({ navigation }: Props) {
         },
       },
     ]);
+  };
+
+  const openPasswordModal = () => {
+    setNewPassword('');
+    setConfirmPassword('');
+    setPasswordModalVisible(true);
+  };
+
+  const handleChangePassword = async () => {
+    if (newPassword.length < 6) {
+      Alert.alert('Password Terlalu Pendek', 'Password minimal 6 karakter.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      Alert.alert('Tidak Cocok', 'Konfirmasi password harus sama persis.');
+      return;
+    }
+    setSavingPassword(true);
+    const { error } = await setAccountPassword(newPassword);
+    setSavingPassword(false);
+    if (error) {
+      Alert.alert('Gagal', error.message);
+      return;
+    }
+    setPasswordModalVisible(false);
+    Alert.alert('Berhasil', 'Password berhasil diperbarui.');
   };
 
   const getInitials = (name: string = '') =>
@@ -95,7 +127,7 @@ export default function ProfileScreen({ navigation }: Props) {
       <TouchableOpacity style={styles.btnOutline} onPress={() => navigation.navigate('EditProfile')}>
         <Text style={styles.btnOutlineText}>✏️ Edit Profil</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={[styles.btnOutline, { marginTop: 10 }]} onPress={() => Alert.alert('Info', 'Fitur ganti password segera hadir')}>
+      <TouchableOpacity style={[styles.btnOutline, { marginTop: 10 }]} onPress={openPasswordModal}>
         <Text style={styles.btnOutlineText}>🔒 Ganti Password</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.btnDanger} onPress={handleLogout}>
@@ -103,6 +135,51 @@ export default function ProfileScreen({ navigation }: Props) {
       </TouchableOpacity>
 
       <View style={{ height: 100 }} />
+
+      <Modal visible={passwordModalVisible} transparent animationType="fade" onRequestClose={() => setPasswordModalVisible(false)}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.modalOverlay}
+        >
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Ganti Password</Text>
+            <Text style={styles.modalLabel}>Password Baru</Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Minimal 6 karakter"
+              secureTextEntry
+              value={newPassword}
+              onChangeText={setNewPassword}
+              autoCapitalize="none"
+            />
+            <Text style={styles.modalLabel}>Konfirmasi Password</Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Ulangi password"
+              secureTextEntry
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              autoCapitalize="none"
+            />
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalCancelBtn}
+                onPress={() => setPasswordModalVisible(false)}
+                disabled={savingPassword}
+              >
+                <Text style={styles.modalCancelText}>Batal</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalSaveBtn, savingPassword && { opacity: 0.6 }]}
+                onPress={handleChangePassword}
+                disabled={savingPassword}
+              >
+                <Text style={styles.modalSaveText}>{savingPassword ? 'Menyimpan...' : 'Simpan'}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </ScrollView>
   );
 }
@@ -160,4 +237,24 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.danger, alignItems: 'center',
   },
   btnDangerText: { color: COLORS.white, fontSize: 15, fontWeight: '600' },
+  modalOverlay: {
+    flex: 1, backgroundColor: 'rgba(11,30,61,0.55)', alignItems: 'center', justifyContent: 'center', padding: 24,
+  },
+  modalCard: { width: '100%', backgroundColor: '#fff', borderRadius: 20, padding: 22 },
+  modalTitle: { fontSize: 17, fontWeight: '800', color: COLORS.text, marginBottom: 16 },
+  modalLabel: { fontSize: 13, fontWeight: '600', color: COLORS.textSecondary, marginBottom: 6, marginTop: 10 },
+  modalInput: {
+    borderWidth: 1.5, borderColor: COLORS.border, borderRadius: 12,
+    paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: COLORS.text,
+  },
+  modalActions: { flexDirection: 'row', gap: 10, marginTop: 22 },
+  modalCancelBtn: {
+    flex: 1, padding: 13, borderRadius: 12, alignItems: 'center',
+    borderWidth: 1.5, borderColor: COLORS.border,
+  },
+  modalCancelText: { color: COLORS.textSecondary, fontWeight: '700' },
+  modalSaveBtn: { flex: 1, padding: 13, borderRadius: 12, alignItems: 'center', backgroundColor: COLORS.primary },
+  modalSaveText: { color: COLORS.white, fontWeight: '700' },
 });
+PROFEOF
+echo done
