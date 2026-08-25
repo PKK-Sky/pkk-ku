@@ -7,12 +7,13 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types';
 import { COLORS } from '../constants/app';
 import { supabase } from '../lib/supabase';
+import { isValidEmail } from '../utils/validation';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'EditProfile'>;
 
 export default function EditProfileScreen({ navigation }: Props) {
   const [fullName, setFullName] = useState('');
-  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [address, setAddress] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -30,14 +31,18 @@ export default function EditProfileScreen({ navigation }: Props) {
       .single();
     if (data) {
       setFullName(data.full_name);
-      setPhone(data.phone);
+      setEmail(data.email || '');
       setAddress(data.address || '');
     }
   };
 
   const handleSave = async () => {
-    if (!fullName.trim() || !phone.trim()) {
-      Alert.alert('Error', 'Nama dan nomor HP wajib diisi');
+    if (!fullName.trim() || !email.trim()) {
+      Alert.alert('Error', 'Nama dan email wajib diisi');
+      return;
+    }
+    if (!isValidEmail(email)) {
+      Alert.alert('Error', 'Masukkan alamat email yang valid');
       return;
     }
     setLoading(true);
@@ -47,11 +52,16 @@ export default function EditProfileScreen({ navigation }: Props) {
         .from('members')
         .update({
           full_name: fullName.trim(),
-          phone: phone.trim(),
+          email: email.trim().toLowerCase(),
           address: address.trim() || null,
         })
         .eq('user_id', user.user?.id);
-      if (error) throw error;
+      if (error) {
+        if (error.message.includes('members_email_key')) {
+          throw new Error('Email ini sudah dipakai anggota lain. Gunakan email lain.');
+        }
+        throw error;
+      }
       Alert.alert('Sukses', 'Profil diperbarui', [
         { text: 'OK', onPress: () => navigation.goBack() },
       ]);
@@ -79,8 +89,15 @@ export default function EditProfileScreen({ navigation }: Props) {
             <TextInput style={styles.input} value={fullName} onChangeText={setFullName} />
           </View>
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Nomor HP</Text>
-            <TextInput style={styles.input} value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
+            <Text style={styles.inputLabel}>Email</Text>
+            <TextInput
+              style={styles.input}
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
           </View>
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Alamat</Text>
