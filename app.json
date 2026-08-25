@@ -44,7 +44,14 @@
           "cameraPermission": "Aplikasi ini memerlukan akses ke kamera untuk mengambil foto dokumentasi kegiatan."
         }
       ],
-      "./plugins/withSplashScreenFix"
+      "./plugins/withSplashScreenFix",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#00BFA6"
+        }
+      ]
     ],
     "extra": {
       "supabaseUrl": "https://vmbqsogwiaqwqmjpobge.supabase.co",
