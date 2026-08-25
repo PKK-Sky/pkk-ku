@@ -1,6 +1,6 @@
 export { default as LoginScreen } from './LoginScreen';
 export { default as MemberActivationScreen } from './MemberActivationScreen';
-export { default as HomeScreen } from './HomeScreen';
+export { default as HomeScreen } from './BerandaScreen';
 export { default as AdminLoginScreen } from './AdminLoginScreen';
 export { default as AdminDashboardScreen } from './AdminDashboardScreen';
 export { default as AdminMembersScreen } from './AdminMembersScreen';

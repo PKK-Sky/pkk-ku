@@ -156,6 +156,10 @@ function ToggleRow({ label, desc, value, onToggle }: { label: string; desc: stri
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
+  center: { padding: 40, alignItems: 'center', justifyContent: 'center' },
+  empty: { padding: 40, alignItems: 'center', justifyContent: 'center' },
+  emptyTitle: { fontSize: 15, fontWeight: '600', color: COLORS.text, marginBottom: 6, textAlign: 'center' },
+  emptyText: { fontSize: 13, color: COLORS.textMuted, textAlign: 'center' },
   topbar: {
     backgroundColor: COLORS.white, padding: 12, flexDirection: 'row',
     alignItems: 'center', justifyContent: 'space-between',
