@@ -5,13 +5,16 @@
  *
  * ── Alur pendaftaran anggota (PENTING, jangan diubah tanpa cek backend) ──
  * Admin TIDAK melakukan "approval". Admin hanya mendaftarkan data minimal
- * (full_name, phone, position_id) → baris tersimpan dengan registration_status
- * = 'pending' dan user_id = null. Anggota lalu mengaktivasi akunnya sendiri:
- *   1. RPC check_member_by_phone(phone) — verifikasi nomor terdaftar.
- *   2. Verifikasi OTP via Supabase Auth (phone) → dapat sesi.
- *   3. RPC complete_member_registration(phone, address?, avatar_url?) — ini yang
- *      men-set registration_status = 'active' dan menghubungkan user_id, TANPA
- *      keterlibatan admin sama sekali.
+ * (full_name, position_id) → baris tersimpan dengan registration_status
+ * = 'pending' dan user_id = null, email = null. Anggota lalu mengaktivasi
+ * akunnya sendiri:
+ *   1. RPC find_members_by_name(full_name) — cari data yang didaftarkan admin.
+ *   2. RPC claim_member_email(member_id, email) — anggota isi email sendiri.
+ *   3. Verifikasi OTP via Supabase Auth (email) → dapat sesi.
+ *   4. RPC complete_member_registration_by_email(email, address?, avatar_url?)
+ *      — ini yang men-set registration_status = 'active' dan menghubungkan
+ *      user_id, TANPA keterlibatan admin sama sekali.
+ *   5. Anggota set password sendiri (supabase.auth.updateUser).
  * Satu-satunya aksi status yang memang dilakukan admin secara manual adalah
  * blokir/buka blokir (registration_status = 'blocked').
  *
@@ -33,7 +36,6 @@
  */
 import { supabase } from '@lib/supabase';
 import type { Member, MemberWithPosition, Announcement, Position, RegistrationStatus } from '@types';
-import { normalizePhoneToE164 } from '@utils/phone';
 
 export interface AdminDashboardStats {
   membersActive: number;
@@ -156,22 +158,18 @@ export async function getAllMembers() {
 
 export interface RegisterMemberInput {
   fullName: string;
-  phoneInput: string; // format lokal apa saja, akan dinormalisasi ke E.164
   positionId: string;
   address?: string;
 }
 
 /**
  * Daftarkan anggota baru dengan data minimal. registration_status otomatis
- * 'pending' (default kolom) — anggota akan mengaktivasi sendiri via OTP.
- * Kapasitas jabatan divalidasi oleh trigger database (check_position_capacity);
- * pesan error trigger sudah ramah dan langsung diteruskan.
+ * 'pending' (default kolom), email masih kosong — anggota akan mengaktivasi
+ * sendiri via alur nama + email OTP. Kapasitas jabatan divalidasi oleh
+ * trigger database (check_position_capacity); pesan error trigger sudah
+ * ramah dan langsung diteruskan.
  */
 export async function registerMember(input: RegisterMemberInput) {
-  const phoneE164 = normalizePhoneToE164(input.phoneInput);
-  if (!phoneE164) {
-    return { data: null, error: new Error('Nomor HP tidak valid.') };
-  }
   if (!input.fullName.trim()) {
     return { data: null, error: new Error('Nama lengkap wajib diisi.') };
   }
@@ -183,7 +181,6 @@ export async function registerMember(input: RegisterMemberInput) {
     .from('members')
     .insert({
       full_name: input.fullName.trim(),
-      phone: phoneE164,
       position_id: input.positionId,
       address: input.address?.trim() || null,
     })
