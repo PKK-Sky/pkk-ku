@@ -7,22 +7,33 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList, Post } from '../types';
 import { COLORS } from '../constants/app';
 import { supabase } from '../lib/supabase';
+import { getMembersByUserIds } from '@services';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'AdminPosts'>;
 
+type PostWithAuthor = Post & { authorName: string };
+
 export default function AdminPostsScreen({ navigation }: Props) {
-  const [posts, setPosts] = useState<Post[]>([]);
+  const [posts, setPosts] = useState<PostWithAuthor[]>([]);
   const [activeTab, setActiveTab] = useState<'all' | 'reported' | 'deleted'>('all');
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchPosts = async () => {
     try {
+      // Catatan: posts.user_id mereferensi auth.users.id, dan skema auth tidak bisa
+      // di-join langsung lewat PostgREST — jadi nama penulis di-resolve terpisah
+      // lewat tabel members (yang punya kolom user_id).
       const { data, error } = await supabase
         .from('posts')
-        .select('*, media:post_media(*), user:auth.users!posts_user_id_fkey(raw_user_meta_data)')
+        .select('*, media:post_media(*)')
         .order('created_at', { ascending: false });
       if (error) throw error;
-      setPosts((data || []) as unknown as Post[]);
+
+      const authorMap = await getMembersByUserIds((data || []).map(post => post.user_id));
+      setPosts((data || []).map(post => ({
+        ...(post as Post),
+        authorName: authorMap.get(post.user_id)?.full_name || 'Anggota PKK',
+      })));
     } catch (err) {
       console.error(err);
     }
