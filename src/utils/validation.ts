@@ -71,3 +71,12 @@ export function validateReportForm(data: ReportFormData): ValidationError[] {
 export function isFormValid(data: ReportFormData): boolean {
   return validateReportForm(data).length === 0;
 }
+
+/**
+ * Validasi format email sederhana (selaras dengan regex di RPC
+ * `claim_member_email` sisi backend: ^[^@\s]+@[^@\s]+\.[^@\s]+$).
+ */
+export function isValidEmail(input: string): boolean {
+  const email = input.trim();
+  return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email);
+}
