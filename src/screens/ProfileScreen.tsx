@@ -67,10 +67,10 @@ export default function ProfileScreen({ navigation }: Props) {
         <Text style={styles.sectionTitle}>INFORMASI PRIBADI</Text>
         <View style={styles.infoCard}>
           <View style={styles.infoRow}>
-            <Text style={styles.infoIcon}>📞</Text>
+            <Text style={styles.infoIcon}>📧</Text>
             <View style={styles.infoContent}>
-              <Text style={styles.infoLabel}>Nomor HP</Text>
-              <Text style={styles.infoValue}>{member?.phone || '-'}</Text>
+              <Text style={styles.infoLabel}>Email</Text>
+              <Text style={styles.infoValue}>{member?.email || '-'}</Text>
             </View>
           </View>
           <View style={styles.infoRow}>
