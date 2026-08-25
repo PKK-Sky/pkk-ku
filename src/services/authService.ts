@@ -108,67 +108,96 @@ export async function checkReportEligibility(): Promise<AuthCheckResult> {
 }
 
 /**
- * Login dengan email dan password (khusus admin — lihat useAuth.login)
+ * Login dengan email dan password — dipakai admin (lihat useAuth.login,
+ * email tetap ADMIN_EMAIL) maupun anggota (lihat useAuth.loginWithMemberEmail,
+ * email bebas sesuai yang di-set saat aktivasi).
  */
 export async function signInWithEmail(email: string, password: string) {
   return supabase.auth.signInWithPassword({ email, password });
 }
 
 // ────────────────────────────────────────────────────────────
-// Alur Aktivasi Mandiri Anggota (OTP)
-// Langkah: checkMemberByPhone -> sendPhoneOtp -> verifyPhoneOtp
-//          -> completeMemberRegistration -> setAccountPassword
-// Sesuai kontrak RPC di docs/supabase/peta_rpc.md bagian 1.
+// Alur Aktivasi Mandiri Anggota (OTP Email)
+// Langkah: findMembersByName -> claimMemberEmail -> sendEmailOtp
+//          -> verifyEmailOtp -> completeMemberRegistrationByEmail
+//          -> setAccountPassword
+// Sesuai RPC aktual di project Supabase (find_members_by_name,
+// claim_member_email, complete_member_registration_by_email).
 // ────────────────────────────────────────────────────────────
 
-export interface CheckMemberByPhoneResult {
+export interface MemberNameCandidate {
+  id: string;
+  full_name: string;
+  position_name: string;
+}
+
+export interface FindMembersByNameResult {
   found: boolean;
-  already_registered?: boolean;
-  blocked?: boolean;
+  ambiguous?: boolean;
+  member_id?: string;
   full_name?: string;
   position_name?: string;
+  candidates?: MemberNameCandidate[];
   message?: string;
 }
 
 /**
- * Langkah 1: cek apakah nomor HP terdaftar di `members` dan siap diaktivasi.
- * Callable tanpa login (RPC di-grant ke anon). Rate limit 5x/15 menit per nomor,
- * dijaga di sisi database (tabel phone_check_attempts) — kalau lewat batas,
- * Supabase akan mengembalikan error (bukan hasil jsonb biasa).
+ * Langkah 1: cek apakah nama lengkap terdaftar di `members` (oleh admin) dan
+ * siap diaktivasi. Callable tanpa login (RPC di-grant ke anon). Rate limit
+ * 5x/15 menit per nama, dijaga di sisi database (tabel name_check_attempts).
+ * Kalau nama dipakai lebih dari satu anggota, hasilnya `ambiguous: true`
+ * beserta daftar `candidates` untuk dipilih user.
  */
-export async function checkMemberByPhone(
-  phoneE164: string
-): Promise<{ data: CheckMemberByPhoneResult | null; error: Error | null }> {
-  const { data, error } = await supabase.rpc('check_member_by_phone', { p_phone: phoneE164 });
+export async function findMembersByName(
+  fullName: string
+): Promise<{ data: FindMembersByNameResult | null; error: Error | null }> {
+  const { data, error } = await supabase.rpc('find_members_by_name', { p_full_name: fullName });
   if (error) return { data: null, error: new Error(error.message) };
-  return { data: data as CheckMemberByPhoneResult, error: null };
-}
-
-/** Langkah 2a: kirim kode OTP SMS ke nomor HP. */
-export async function sendPhoneOtp(phoneE164: string) {
-  return supabase.auth.signInWithOtp({ phone: phoneE164 });
+  return { data: data as FindMembersByNameResult, error: null };
 }
 
 /**
- * Langkah 2b: verifikasi kode OTP. Sukses -> Supabase langsung membuat session
- * (isAuthenticated akan true). Registrasi member BELUM selesai di titik ini —
- * lanjut ke completeMemberRegistration.
+ * Langkah 2: simpan email yang akan dipakai anggota untuk login & OTP,
+ * ditempel ke row `members` (by member_id) hasil langkah 1. Belum butuh
+ * login — masih anon. Menolak kalau email sudah dipakai anggota lain.
  */
-export async function verifyPhoneOtp(phoneE164: string, token: string) {
-  return supabase.auth.verifyOtp({ phone: phoneE164, token, type: 'sms' });
+export async function claimMemberEmail(
+  memberId: string,
+  email: string
+): Promise<{ data: { success: boolean; email: string } | null; error: Error | null }> {
+  const { data, error } = await supabase.rpc('claim_member_email', {
+    p_member_id: memberId,
+    p_email: email,
+  });
+  if (error) return { data: null, error: new Error(error.message) };
+  return { data: data as { success: boolean; email: string }, error: null };
+}
+
+/** Langkah 3a: kirim kode OTP ke email. */
+export async function sendEmailOtp(email: string) {
+  return supabase.auth.signInWithOtp({ email });
 }
 
 /**
- * Langkah 3: selesaikan registrasi — link members.user_id ke auth.uid() dan
- * buat row profiles. Wajib sudah punya session (dari verifyPhoneOtp).
+ * Langkah 3b: verifikasi kode OTP email. Sukses -> Supabase langsung membuat
+ * session (isAuthenticated akan true). Registrasi member BELUM selesai di
+ * titik ini — lanjut ke completeMemberRegistrationByEmail.
  */
-export async function completeMemberRegistration(
-  phoneE164: string,
+export async function verifyEmailOtp(email: string, token: string) {
+  return supabase.auth.verifyOtp({ email, token, type: 'email' });
+}
+
+/**
+ * Langkah 4: selesaikan registrasi — link members.user_id ke auth.uid() dan
+ * buat row profiles. Wajib sudah punya session (dari verifyEmailOtp).
+ */
+export async function completeMemberRegistrationByEmail(
+  email: string,
   address?: string | null,
   avatarUrl?: string | null
 ): Promise<{ data: { success: boolean; member_id: string } | null; error: Error | null }> {
-  const { data, error } = await supabase.rpc('complete_member_registration', {
-    p_phone: phoneE164,
+  const { data, error } = await supabase.rpc('complete_member_registration_by_email', {
+    p_email: email,
     p_address: address ?? null,
     p_avatar_url: avatarUrl ?? null,
   });
@@ -177,8 +206,8 @@ export async function completeMemberRegistration(
 }
 
 /**
- * Langkah 4: set password akun, supaya selanjutnya anggota bisa login pakai
- * nomor HP + password (signInWithPhone), bukan OTP terus-menerus.
+ * Langkah 5: set password akun, supaya selanjutnya anggota bisa login pakai
+ * email + password (signInWithEmail), bukan OTP terus-menerus.
  */
 export async function setAccountPassword(password: string) {
   return supabase.auth.updateUser({ password });
@@ -211,16 +240,6 @@ export async function getMemberLinkStatus(userId: string): Promise<MemberLinkSta
   }
 
   return { isLinked: !!data };
-}
-
-/**
- * Login anggota dengan Nomor HP + Password.
- * Nomor HP wajib sudah dalam format E.164 (+62...) — gunakan normalizePhoneToE164
- * dari '@utils/phone' sebelum memanggil ini.
- * Akun anggota terbentuk lewat alur aktivasi (OTP + set password), bukan didaftar di sini.
- */
-export async function signInWithPhone(phoneE164: string, password: string) {
-  return supabase.auth.signInWithPassword({ phone: phoneE164, password });
 }
 
 /**
