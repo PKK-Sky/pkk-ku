@@ -12,7 +12,6 @@ type Props = NativeStackScreenProps<RootStackParamList, 'AdminAddMember'>;
 
 export default function AdminAddMemberScreen({ navigation }: Props) {
   const [fullName, setFullName] = useState('');
-  const [phone, setPhone] = useState('');
   const [positionId, setPositionId] = useState('');
   const [address, setAddress] = useState('');
   const [positions, setPositions] = useState<Position[]>([]);
@@ -25,16 +24,14 @@ export default function AdminAddMemberScreen({ navigation }: Props) {
   }, []);
 
   const handleSave = async () => {
-    if (!fullName.trim() || !phone.trim() || !positionId) {
-      Alert.alert('Error', 'Nama, nomor HP, dan jabatan wajib diisi');
+    if (!fullName.trim() || !positionId) {
+      Alert.alert('Error', 'Nama dan jabatan wajib diisi');
       return;
     }
     setLoading(true);
     try {
-      const formattedPhone = phone.startsWith('+') ? phone : `+62${phone.replace(/^0/, '')}`;
       const { error } = await supabase.from('members').insert({
         full_name: fullName.trim(),
-        phone: formattedPhone,
         position_id: positionId,
         address: address.trim() || null,
         registration_status: 'pending',
@@ -79,17 +76,6 @@ export default function AdminAddMemberScreen({ navigation }: Props) {
               placeholder="Nama lengkap anggota"
               value={fullName}
               onChangeText={setFullName}
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Nomor HP</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="08xxxxxxxxxx"
-              keyboardType="phone-pad"
-              value={phone}
-              onChangeText={setPhone}
             />
           </View>
 
