@@ -15,15 +15,21 @@ export function useNotifications(userId: string | null) {
   const [isLoading, setIsLoading] = useState(true);
 
   const refetch = useCallback(async () => {
+    if (!userId) {
+      setNotifications([]);
+      setUnreadCount(0);
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     const [{ data }, { count }] = await Promise.all([
-      getRecentNotifications(20),
-      getUnreadNotificationCount(),
+      getRecentNotifications(userId, 20),
+      getUnreadNotificationCount(userId),
     ]);
     setNotifications(data ?? []);
     setUnreadCount(count);
     setIsLoading(false);
-  }, []);
+  }, [userId]);
 
   // Realtime: notification_inbox terdaftar di publication supabase_realtime,
   // jadi notifikasi baru muncul instan tanpa polling.
@@ -56,10 +62,11 @@ export function useNotifications(userId: string | null) {
   }, []);
 
   const markAllRead = useCallback(async () => {
+    if (!userId) return;
     setNotifications((prev) => prev.map((n) => ({ ...n, read_at: n.read_at ?? new Date().toISOString() })));
     setUnreadCount(0);
-    await markAllNotificationsRead();
-  }, []);
+    await markAllNotificationsRead(userId);
+  }, [userId]);
 
   return { notifications, unreadCount, isLoading, refetch, markRead, markAllRead };
 }

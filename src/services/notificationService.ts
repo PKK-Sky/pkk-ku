@@ -10,10 +10,14 @@ import type { NotificationInbox } from '@types';
 /**
  * Ambil notifikasi terbaru milik user yang sedang login.
  */
-export async function getRecentNotifications(limit: number = 20) {
+const SYSTEM_NOTIFICATION_KINDS = ['report_received', 'announcement', 'system'] as const;
+
+export async function getRecentNotifications(userId: string, limit: number = 20) {
   const { data, error } = await supabase
     .from('notification_inbox')
     .select('*')
+    .eq('user_id', userId)
+    .in('kind', [...SYSTEM_NOTIFICATION_KINDS])
     .order('created_at', { ascending: false })
     .limit(limit);
 
@@ -23,10 +27,12 @@ export async function getRecentNotifications(limit: number = 20) {
 /**
  * Hitung jumlah notifikasi belum dibaca milik user yang sedang login.
  */
-export async function getUnreadNotificationCount() {
+export async function getUnreadNotificationCount(userId: string) {
   const { count, error } = await supabase
     .from('notification_inbox')
     .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .in('kind', [...SYSTEM_NOTIFICATION_KINDS])
     .is('read_at', null);
 
   return { count: count ?? 0, error };
@@ -49,10 +55,12 @@ export async function markNotificationRead(notificationId: string) {
 /**
  * Tandai semua notifikasi milik user sebagai sudah dibaca.
  */
-export async function markAllNotificationsRead() {
+export async function markAllNotificationsRead(userId: string) {
   return supabase
     .from('notification_inbox')
     .update({ read_at: new Date().toISOString() })
+    .eq('user_id', userId)
+    .in('kind', [...SYSTEM_NOTIFICATION_KINDS])
     .is('read_at', null);
 }
 

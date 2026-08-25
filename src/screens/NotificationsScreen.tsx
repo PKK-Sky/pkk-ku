@@ -5,58 +5,75 @@ import {
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList, NotificationInbox, NotificationPreferences } from '../types';
 import { COLORS } from '../constants/app';
+import { useAuthContext } from '../context/AuthContext';
+import { useNotifications } from '../hooks/useNotifications';
 import { supabase } from '../lib/supabase';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Notifications'>;
 
 export default function NotificationsScreen({ navigation }: Props) {
-  const [notifications, setNotifications] = useState<NotificationInbox[]>([]);
   const [preferences, setPreferences] = useState<NotificationPreferences | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-
-  const fetchData = async () => {
-    const { data: user } = await supabase.auth.getUser();
-    if (!user.user) return;
-
-    const { data: notifData } = await supabase
-      .from('notification_inbox')
-      .select('*')
-      .eq('user_id', user.user.id)
-      .order('created_at', { ascending: false });
-    setNotifications(notifData || []);
-
-    const { data: prefData } = await supabase
-      .from('notification_preferences')
-      .select('*')
-      .eq('user_id', user.user.id)
-      .single();
-    setPreferences(prefData);
-  };
+  const { user } = useAuthContext();
+  const {
+    notifications,
+    isLoading,
+    refetch,
+    markRead,
+    markAllRead: markAllSystemRead,
+  } = useNotifications(user?.id ?? null);
 
   useEffect(() => {
-    fetchData();
-    const channel = supabase
-      .channel('user-notifications')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notification_inbox' }, () => fetchData())
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, []);
+    if (!user?.id) {
+      setPreferences(null);
+      return;
+    }
+    supabase
+      .from('notification_preferences')
+      .select('*')
+      .eq('user_id', user.id)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (error) console.error('[Notifications] gagal memuat preferensi:', error.message);
+        setPreferences(data as NotificationPreferences | null);
+      });
+  }, [user?.id]);
 
   const onRefresh = useCallback(async () => {
-    setRefreshing(true); await fetchData(); setRefreshing(false);
-  }, []);
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
+  }, [refetch]);
 
-  const markAllRead = async () => {
-    const { data: user } = await supabase.auth.getUser();
-    await supabase.from('notification_inbox').update({ read_at: new Date().toISOString() }).eq('user_id', user.user?.id);
-    fetchData();
+  // Membuka layar berarti user sudah melihat inbox sistem: badge langsung hilang.
+  useEffect(() => {
+    if (!isLoading && notifications.some(item => !item.read_at)) {
+      void markAllSystemRead();
+    }
+  }, [isLoading, notifications, markAllSystemRead]);
+
+  const openNotification = async (notification: NotificationInbox) => {
+    if (!notification.read_at) await markRead(notification.id);
+    const data = notification.data || {};
+    const reportId = typeof data.reportId === 'string' ? data.reportId : null;
+    if (reportId || notification.kind === 'report_received') {
+      if (reportId) navigation.navigate('ReportDetail', { reportId });
+      return;
+    }
+    if (notification.kind === 'announcement') navigation.navigate('Announcements');
   };
 
   const togglePref = async (key: keyof NotificationPreferences) => {
-    if (!preferences) return;
-    const { data: user } = await supabase.auth.getUser();
+    if (!preferences || !user?.id) return;
     const newValue = !preferences[key];
-    await supabase.from('notification_preferences').update({ [key]: newValue }).eq('user_id', user.user?.id);
+    const { error } = await supabase
+      .from('notification_preferences')
+      .update({ [key]: newValue })
+      .eq('user_id', user.id);
+    if (error) {
+      console.error('[Notifications] gagal menyimpan preferensi:', error.message);
+      return;
+    }
     setPreferences({ ...preferences, [key]: newValue });
   };
 
@@ -81,8 +98,12 @@ export default function NotificationsScreen({ navigation }: Props) {
       </View>
 
       <ScrollView refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
-        {notifications.map(notif => (
-          <View key={notif.id} style={[styles.listItem, !notif.read_at && styles.listItemUnread]}>
+        {isLoading ? (
+          <View style={styles.center}><Text style={styles.emptyText}>Memuat notifikasi...</Text></View>
+        ) : notifications.length === 0 ? (
+          <View style={styles.empty}><Text style={styles.emptyTitle}>Belum ada notifikasi sistem</Text><Text style={styles.emptyText}>Pembaruan, pengumuman, dan status laporan akan muncul di sini.</Text></View>
+        ) : notifications.map(notif => (
+          <TouchableOpacity key={notif.id} onPress={() => openNotification(notif)} style={[styles.listItem, !notif.read_at && styles.listItemUnread]}>
             <View style={[styles.listAvatar, { backgroundColor: COLORS.primaryLight }]}>
               <Text style={styles.listAvatarText}>{getIcon(notif.kind)}</Text>
             </View>
@@ -100,7 +121,7 @@ export default function NotificationsScreen({ navigation }: Props) {
         ))}
 
         {notifications.length > 0 && (
-          <TouchableOpacity style={styles.btnGhost} onPress={markAllRead}>
+          <TouchableOpacity style={styles.btnGhost} onPress={markAllSystemRead}>
             <Text style={styles.btnGhostText}>Tandai Semua Dibaca</Text>
           </TouchableOpacity>
         )}
@@ -109,9 +130,7 @@ export default function NotificationsScreen({ navigation }: Props) {
           <Text style={styles.sectionTitle}>PENGATURAN</Text>
           {preferences && (
             <>
-              <ToggleRow label="Notifikasi Chat" desc="Pesan masuk" value={preferences.chat_messages} onToggle={() => togglePref('chat_messages')} />
               <ToggleRow label="Notifikasi Laporan" desc="Status laporan" value={preferences.report_received} onToggle={() => togglePref('report_received')} />
-              <ToggleRow label="Notifikasi Feed" desc="Like, komen, postingan baru" value={preferences.social_activity} onToggle={() => togglePref('social_activity')} />
               <ToggleRow label="Notifikasi Pengumuman" desc="Pengumuman baru dari admin" value={preferences.announcements} onToggle={() => togglePref('announcements')} />
             </>
           )}
