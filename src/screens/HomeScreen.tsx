@@ -163,7 +163,7 @@ export default function HomeScreen({ navigation }: Props) {
             </View>
             <Text style={styles.shortcutLabel}>Feed</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.shortcutItem} onPress={() => navigation.navigate('NewChat')}>
+          <TouchableOpacity style={styles.shortcutItem} onPress={() => navigation.navigate('ChatList')}>
             <View style={[styles.shortcutIcon, { backgroundColor: '#E0E7FF' }]}>
               <Text style={[styles.shortcutIconText, { color: '#4F46E5' }]}>💬</Text>
             </View>
