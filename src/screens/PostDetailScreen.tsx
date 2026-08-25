@@ -1,3 +1,4 @@
+cat > /home/claude/pkk-ku-v3/pkk-ku-main/src/screens/PostDetailScreen.tsx << 'PDEOF'
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -14,13 +15,20 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList, Post, PostComment } from '../types';
 import { COLORS } from '../constants/app';
 import { supabase } from '../lib/supabase';
+import { getMembersByUserIds, getPublicMediaUrl } from '@services';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PostDetail'>;
+
+type CommentWithAuthor = PostComment & { authorName: string; authorInitials: string };
+
+const getInitials = (name: string = '') =>
+  name.split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase().slice(0, 2) || '?';
 
 export default function PostDetailScreen({ navigation, route }: Props) {
   const { postId } = route.params;
   const [post, setPost] = useState<Post | null>(null);
-  const [comments, setComments] = useState<PostComment[]>([]);
+  const [postAuthorName, setPostAuthorName] = useState('Anggota PKK');
+  const [comments, setComments] = useState<CommentWithAuthor[]>([]);
   const [draft, setDraft] = useState('');
   const [currentUserId, setCurrentUserId] = useState('');
   const [loading, setLoading] = useState(true);
@@ -40,8 +48,23 @@ export default function PostDetailScreen({ navigation, route }: Props) {
 
     if (postError) Alert.alert('Error', postError.message);
     if (commentError) Alert.alert('Error', commentError.message);
-    setPost(postData as Post | null);
-    setComments((commentData || []) as PostComment[]);
+
+    const typedPost = postData as Post | null;
+    const typedComments = (commentData || []) as PostComment[];
+
+    // Nama asli penulis post + tiap komentar, di-batch dalam satu query.
+    const idsToLookup = [
+      ...(typedPost ? [typedPost.user_id] : []),
+      ...typedComments.map(c => c.user_id),
+    ];
+    const authorMap = await getMembersByUserIds(idsToLookup);
+
+    setPost(typedPost);
+    setPostAuthorName(typedPost ? (authorMap.get(typedPost.user_id)?.full_name || 'Anggota PKK') : 'Anggota PKK');
+    setComments(typedComments.map(c => {
+      const name = authorMap.get(c.user_id)?.full_name || 'Anggota PKK';
+      return { ...c, authorName: name, authorInitials: getInitials(name) };
+    }));
     setLoading(false);
   };
 
@@ -62,7 +85,9 @@ export default function PostDetailScreen({ navigation, route }: Props) {
 
     if (error) Alert.alert('Error', error.message);
     else if (data) {
-      setComments(previous => [...previous, data as PostComment]);
+      const authorMap = await getMembersByUserIds([currentUserId]);
+      const name = authorMap.get(currentUserId)?.full_name || 'Anda';
+      setComments(previous => [...previous, { ...(data as PostComment), authorName: name, authorInitials: getInitials(name) }]);
       setDraft('');
     }
     setSubmitting(false);
@@ -102,9 +127,9 @@ export default function PostDetailScreen({ navigation, route }: Props) {
         ListHeaderComponent={
           <View style={styles.postCard}>
             <View style={styles.postHeader}>
-              <View style={styles.avatar}><Text style={styles.avatarText}>PK</Text></View>
+              <View style={styles.avatar}><Text style={styles.avatarText}>{getInitials(postAuthorName)}</Text></View>
               <View>
-                <Text style={styles.postAuthor}>Anggota PKK</Text>
+                <Text style={styles.postAuthor}>{postAuthorName}</Text>
                 <Text style={styles.postDate}>
                   {new Date(post.created_at).toLocaleDateString('id-ID')}
                 </Text>
@@ -114,7 +139,7 @@ export default function PostDetailScreen({ navigation, route }: Props) {
             {post.media?.map(media => (
               <Image
                 key={media.id}
-                source={{ uri: media.storage_path }}
+                source={{ uri: getPublicMediaUrl('post-media', media.storage_path) }}
                 style={styles.media}
                 resizeMode="cover"
               />
@@ -124,9 +149,9 @@ export default function PostDetailScreen({ navigation, route }: Props) {
         }
         renderItem={({ item }) => (
           <View style={styles.comment}>
-            <View style={styles.commentAvatar}><Text style={styles.avatarText}>PK</Text></View>
+            <View style={styles.commentAvatar}><Text style={styles.avatarText}>{item.authorInitials}</Text></View>
             <View style={styles.commentBody}>
-              <Text style={styles.commentAuthor}>Anggota PKK</Text>
+              <Text style={styles.commentAuthor}>{item.authorName}</Text>
               <Text style={styles.commentText}>{item.content}</Text>
               <Text style={styles.commentDate}>{new Date(item.created_at).toLocaleDateString('id-ID')}</Text>
             </View>
@@ -215,3 +240,5 @@ const styles = StyleSheet.create({
   primaryButton: { backgroundColor: COLORS.primary, paddingHorizontal: 18, paddingVertical: 11, borderRadius: 12 },
   primaryButtonText: { color: COLORS.white, fontWeight: '700' },
 });
+PDEOF
+echo done
