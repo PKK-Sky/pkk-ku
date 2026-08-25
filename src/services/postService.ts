@@ -25,18 +25,27 @@ export async function getMembersByUserIds(
   const map = new Map<string, MemberLookup>();
   if (uniqueIds.length === 0) return map;
 
-  const { data, error } = await supabase
-    .from('members')
-    .select('user_id, full_name, avatar_url')
-    .in('user_id', uniqueIds);
+  // RLS pada `members` hanya mengizinkan admin ATAU baris milik diri sendiri —
+  // query langsung ke tabel akan selalu kosong untuk id anggota lain. Pakai RPC
+  // get_members_public() (SECURITY DEFINER) yang mengekspos field publik saja
+  // (user_id, full_name, avatar_url — TANPA phone/address) untuk id manapun.
+  const { data, error } = await supabase.rpc('get_members_public', {
+    p_user_ids: uniqueIds,
+  });
 
   if (error) {
     console.error('[postService] gagal memuat profil anggota:', error.message);
     return map;
   }
 
-  (data || []).forEach(row => {
-    if (row.user_id) map.set(row.user_id, row as MemberLookup);
+  (data || []).forEach((row: { user_id: string; full_name: string; avatar_url: string | null }) => {
+    if (row.user_id) {
+      map.set(row.user_id, {
+        user_id: row.user_id,
+        full_name: row.full_name,
+        avatar_url: row.avatar_url,
+      });
+    }
   });
   return map;
 }
