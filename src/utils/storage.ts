@@ -5,6 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const DRAFT_KEY = '@pkk:report_draft';
 const SUBMISSION_KEY = '@pkk:submission_state';
+const REMEMBERED_EMAIL_KEY = '@pkk:remembered_email';
 
 export async function saveDraft<T>(draft: T): Promise<void> {
   await AsyncStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
@@ -40,4 +41,20 @@ export async function getSubmissionState<T>(): Promise<T | null> {
 
 export async function clearSubmissionState(): Promise<void> {
   await AsyncStorage.removeItem(SUBMISSION_KEY);
+}
+
+/**
+ * "Ingat Saya" di layar login — HANYA menyimpan email, tidak pernah
+ * menyimpan password ke storage lokal.
+ */
+export async function saveRememberedEmail(email: string): Promise<void> {
+  await AsyncStorage.setItem(REMEMBERED_EMAIL_KEY, email);
+}
+
+export async function getRememberedEmail(): Promise<string | null> {
+  return AsyncStorage.getItem(REMEMBERED_EMAIL_KEY);
+}
+
+export async function clearRememberedEmail(): Promise<void> {
+  await AsyncStorage.removeItem(REMEMBERED_EMAIL_KEY);
 }
