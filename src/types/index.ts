@@ -34,6 +34,7 @@ export type RootStackParamList = {
   ReportDetail: { reportId: string };
   ReportPreview: { reportId: string };
   ReportPdfViewer: { reportId: string };
+  Jadwal: undefined;
 
   // Chat Stack
   ChatList: undefined;
@@ -49,11 +50,10 @@ export type RootStackParamList = {
 };
 
 export type UserTabParamList = {
-  HomeTab: undefined;
-  FeedTab: undefined;
-  ReportTab: undefined;
-  ChatTab: undefined;
-  ProfileTab: undefined;
+  BerandaTab: undefined;
+  LaporanTab: undefined;
+  PesanTab: undefined;
+  ProfilTab: undefined;
 };
 
 export type MemberStatus = 'pending' | 'active' | 'blocked';
